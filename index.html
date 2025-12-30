@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Performance V41 - Chart Switcher</title>
+    <title>Performance V43 - 10 Min Sync</title>
     <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
     <link href="https://fonts.googleapis.com/css2?family=Prompt:wght@300;400;600&display=swap" rel="stylesheet">
     <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
@@ -21,6 +21,8 @@
         .nav-btn.active-btn { background: var(--soft-orange); color: white; border-color: var(--soft-orange); }
         .live-time-display { font-size: 2.5rem; font-weight: 600; color: #e65100; margin-bottom: 5px; letter-spacing: 2px; }
         .hidden-completely { display: none !important; }
+        .sync-info { font-size: 0.75rem; color: #8d6e63; margin-top: 10px; }
+        .btn-refresh-mini { background: #fff3e0; border: 1px solid #ffcc80; border-radius: 10px; color: #e65100; font-size: 0.8rem; padding: 2px 10px; cursor: pointer; }
         .chart-toggle-btn { font-size: 0.8rem; padding: 4px 12px; border-radius: 10px; border: 1px solid var(--soft-orange); background: white; color: var(--soft-orange); }
         .chart-toggle-btn.active { background: var(--soft-orange); color: white; }
     </style>
@@ -33,14 +35,14 @@
         <input type="text" id="user" class="form-control mb-3 py-2" placeholder="Username">
         <input type="password" id="pass" class="form-control mb-4 py-2" placeholder="Password">
         <button id="btnLogin" onclick="login()" class="btn btn-orange w-100 py-2 shadow"><span id="loginText">เข้าสู่ระบบ</span></button>
-        <div id="loginStatus" class="mt-3 small text-muted hidden-completely">⌛ กำลังโหลดข้อมูล...</div>
+        <div id="loginStatus" class="mt-3 small text-muted hidden-completely">⌛ กำลังเชื่อมต่อ...</div>
     </div>
 </div>
 
 <div id="mainSection" class="hidden-completely">
     <nav class="navbar mb-3 p-3 glass-card mx-2 mt-2">
         <div class="container d-flex justify-content-between align-items-center">
-            <span class="navbar-brand fw-bold" style="color: #e65100;">🍊 V.41 Auto-Chart</span>
+            <span class="navbar-brand fw-bold" style="color: #e65100;">🍊 V.43 10-Min Sync</span>
             <div class="text-end">
                 <div class="small fw-bold">👤 <span id="empName"></span></div>
                 <button onclick="logout()" class="btn btn-sm btn-link text-danger text-decoration-none p-0">ออกจากระบบ</button>
@@ -57,6 +59,9 @@
 
         <div id="tab-record" class="tab-content text-center">
             <div class="glass-card mb-3">
+                <div class="d-flex justify-content-end mb-2">
+                    <button class="btn-refresh-mini" onclick="manualRefresh()">🔄 Sync ข้อมูล</button>
+                </div>
                 <div id="bigClock" class="live-time-display">00:00:00</div>
                 <h6 id="displayDateText" class="fw-bold text-muted mb-3"></h6>
                 <div class="row g-2 mt-2">
@@ -64,6 +69,7 @@
                     <div class="col-4"><div class="stat-box shadow-sm small" style="border-left-color:var(--green)">จริง<br><span id="displayActual" class="h5 fw-bold text-success">0</span></div></div>
                     <div class="col-4"><div class="stat-box shadow-sm small" id="balanceBox">+/-<br><span id="displayBalance" class="h5 fw-bold">0</span></div></div>
                 </div>
+                <div class="sync-info">อัปเดตล่าสุด: <span class="last-sync-time">-</span></div>
             </div>
             <div class="row g-3">
                 <div class="col-6 col-md-4"><div class="stat-box">📦 CP No. <span class="badge-count" id="count-CP">0</span><input type="text" class="form-control mt-2 cat-input" data-cat="CP No."></div></div>
@@ -79,19 +85,23 @@
         <div id="tab-dash" class="tab-content hidden-completely">
             <div class="glass-card mb-3">
                 <div class="d-flex justify-content-between align-items-center mb-3">
-                    <h6 class="fw-bold m-0">📊 สรุปผล Performance</h6>
-                    <div class="btn-group shadow-sm">
-                        <button id="btnBar" class="chart-toggle-btn active" onclick="setChartType('bar')">📊 แท่ง</button>
-                        <button id="btnLine" class="chart-toggle-btn" onclick="setChartType('line')">📈 เส้น</button>
+                    <h6 class="fw-bold m-0">📊 Performance Summary</h6>
+                    <div class="d-flex gap-2">
+                        <button class="btn-refresh-mini" onclick="manualRefresh()">🔄 Sync</button>
+                        <div class="btn-group shadow-sm">
+                            <button id="btnBar" class="chart-toggle-btn active" onclick="setChartType('bar')">Bar</button>
+                            <button id="btnLine" class="chart-toggle-btn" onclick="setChartType('line')">Line</button>
+                        </div>
                     </div>
                 </div>
-                <div class="row g-2">
+                <div class="row g-2 mb-3">
                     <div class="col-6 col-md-3"><label class="small fw-bold">ประเภท</label><select id="viewType" class="form-select" onchange="toggleFilters(); processDashboard();"><option value="daily">รายวัน</option><option value="monthly">รายเดือน</option><option value="quarterly">รายไตรมาส</option><option value="yearly">รายปี</option></select></div>
                     <div class="col-6 col-md-3" id="divYear"><label class="small fw-bold">ปี</label><select id="selYear" class="form-select" multiple onchange="updateSubFilters(); processDashboard();"></select></div>
                     <div class="col-6 col-md-3 hidden-completely" id="divQuarter"><label class="small fw-bold">ไตรมาส</label><select id="selQuarter" class="form-select" multiple onchange="processDashboard();"><option value="Q1" selected>Q1</option><option value="Q2" selected>Q2</option><option value="Q3" selected>Q3</option><option value="Q4" selected>Q4</option></select></div>
                     <div class="col-6 col-md-3" id="divMonth"><label class="small fw-bold">เดือน</label><select id="selMonth" class="form-select" multiple onchange="updateDayFilter(); processDashboard();"></select></div>
                     <div class="col-6 col-md-3" id="divDay"><label class="small fw-bold">วันที่</label><select id="selDay" class="form-select" multiple onchange="processDashboard();"></select></div>
                 </div>
+                <div class="sync-info text-center">อัปเดตล่าสุด: <span class="last-sync-time">-</span> (Auto-Sync ทุก 10 นาที)</div>
             </div>
             <div class="glass-card" style="height: 380px;"><canvas id="perfChart"></canvas></div>
             <div class="glass-card px-0 overflow-hidden shadow-sm">
@@ -115,7 +125,7 @@
                     <div class="col-md-3"><button onclick="savePlan('save')" class="btn btn-orange w-100 shadow-sm">บันทึก</button></div>
                 </div>
                 <table class="table text-center table-sm">
-                    <thead><tr><th>วันที่</th><th>เป้าหมาย</th><th>ลบ</th></tr></thead>
+                    <thead><tr><th>วันที่</th><th>Target</th><th>ลบ</th></tr></thead>
                     <tbody id="planTableBody"></tbody>
                 </table>
             </div>
@@ -126,6 +136,7 @@
 <script>
     const SCRIPT_URL = 'https://script.google.com/macros/s/AKfycbwQwqm_s6_0S6bcBX6xYXb8pLzxDJy5-m5AotyIV4f6uJPxYmTrmNkaXWQsGpk0PwY/exec';
     let currentUser = "", allData = [], allPlans = [], chartInstance = null, currentChartType = 'bar';
+    let syncInterval = null;
     Chart.register(ChartDataLabels);
 
     setInterval(() => {
@@ -144,50 +155,65 @@
                 await refreshView(); 
                 document.getElementById('loginSection').classList.add('hidden-completely');
                 document.getElementById('mainSection').classList.remove('hidden-completely');
+                startAutoSync();
             } else { Swal.fire('Error', 'Username หรือ Password ไม่ถูกต้อง', 'error'); }
-        } catch(e) { Swal.fire('Error', 'Connection failed', 'error'); }
+        } catch(e) { Swal.fire('Error', 'Connection Error', 'error'); }
     }
 
-    function logout() { location.reload(); }
+    // แก้ไขเป็น 600,000 ms (10 นาที)
+    function startAutoSync() {
+        if(syncInterval) clearInterval(syncInterval);
+        syncInterval = setInterval(() => { refreshView(true); }, 600000); 
+    }
 
-    async function refreshView() {
-        const res = await (await fetch(SCRIPT_URL)).json();
-        allData = res.data.slice(1); allPlans = res.plans.slice(1);
-        const todayStr = new Date().toISOString().split('T')[0];
-        const userPlans = allPlans.filter(p => p[1] === currentUser);
-        const todayData = allData.filter(d => d[0].split('T')[0] === todayStr && d[1] === currentUser);
-        
-        const target = parseInt(userPlans.find(p => p[0].split('T')[0] === todayStr)?.[3] || 0);
-        document.getElementById('displayTarget').innerText = target;
-        document.getElementById('displayActual').innerText = todayData.length;
-        const bal = todayData.length - target;
-        const balEl = document.getElementById('displayBalance');
-        balEl.innerText = (bal > 0 ? "+" : "") + bal;
-        balEl.className = "h5 fw-bold " + (bal >= 0 ? "text-success" : "text-danger");
-        document.getElementById('displayDateText').innerText = '📅 ' + new Date().toLocaleDateString('th-TH', {day:'numeric', month:'long', year:'numeric'});
-        
-        const cats = { "CP": "CP No.", "Call": "Call IN", "IR": "IR", "DropCall": "Drop Call", "SR": "SR", "Campaign": "Campaign" };
-        for (let id in cats) {
-            const el = document.getElementById(`count-${id}`);
-            if(el) el.innerText = todayData.filter(d => d[2] === cats[id]).length;
-        }
+    async function manualRefresh() {
+        const btn = event.target;
+        btn.innerText = "⏳ Syncing..."; btn.disabled = true;
+        await refreshView();
+        btn.innerText = "🔄 Sync ข้อมูล"; btn.disabled = false;
+        Swal.fire({ toast: true, position: 'top-end', showConfirmButton: false, timer: 1500, icon: 'success', title: 'อัปเดตล่าสุดเรียบร้อย' });
+    }
 
-        let h = ""; userPlans.sort((a,b)=>new Date(b[0])-new Date(a[0])).slice(0,5).forEach(p => {
-            h += `<tr><td>${new Date(p[0]).toLocaleDateString('th-TH')}</td><td>${p[3]}</td><td><button class="btn btn-sm text-danger" onclick="savePlan('delete','${p[0].split('T')[0]}')">ลบ</button></td></tr>`;
-        });
-        document.getElementById('planTableBody').innerHTML = h;
-        if(!document.getElementById('tab-dash').classList.contains('hidden-completely')) processDashboard();
+    async function refreshView(silent = false) {
+        try {
+            const res = await (await fetch(SCRIPT_URL)).json();
+            allData = res.data.slice(1); allPlans = res.plans.slice(1);
+            const todayStr = new Date().toISOString().split('T')[0];
+            const userPlans = allPlans.filter(p => p[1] === currentUser);
+            const todayData = allData.filter(d => d[0].split('T')[0] === todayStr && d[1] === currentUser);
+            const target = parseInt(userPlans.find(p => p[0].split('T')[0] === todayStr)?.[3] || 0);
+            
+            document.getElementById('displayTarget').innerText = target;
+            document.getElementById('displayActual').innerText = todayData.length;
+            const bal = todayData.length - target;
+            const balEl = document.getElementById('displayBalance');
+            balEl.innerText = (bal > 0 ? "+" : "") + bal;
+            balEl.className = "h5 fw-bold " + (bal >= 0 ? "text-success" : "text-danger");
+            document.getElementById('balanceBox').style.borderLeftColor = bal >= 0 ? "var(--green)" : "var(--red)";
+            document.getElementById('displayDateText').innerText = '📅 ' + new Date().toLocaleDateString('th-TH', {day:'numeric', month:'long', year:'numeric'});
+            
+            const cats = { "CP": "CP No.", "Call": "Call IN", "IR": "IR", "DropCall": "Drop Call", "SR": "SR", "Campaign": "Campaign" };
+            for (let id in cats) {
+                const el = document.getElementById(`count-${id}`);
+                if(el) el.innerText = todayData.filter(d => d[2] === cats[id]).length;
+            }
+
+            const syncTimes = document.querySelectorAll('.last-sync-time');
+            syncTimes.forEach(el => el.innerText = new Date().toLocaleTimeString('th-TH'));
+
+            let h = ""; userPlans.sort((a,b)=>new Date(b[0])-new Date(a[0])).slice(0,5).forEach(p => {
+                h += `<tr><td>${new Date(p[0]).toLocaleDateString('th-TH')}</td><td>${p[3]}</td><td><button class="btn btn-sm text-danger" onclick="savePlan('delete','${p[0].split('T')[0]}')">ลบ</button></td></tr>`;
+            });
+            document.getElementById('planTableBody').innerHTML = h;
+            if(!document.getElementById('tab-dash').classList.contains('hidden-completely')) processDashboard();
+        } catch(e) { console.error(e); }
     }
 
     async function saveWork() {
-        const entries = []; 
-        document.querySelectorAll('.cat-input').forEach(i => { if(i.value.trim()) entries.push({category: i.dataset.cat, caseId: i.value.trim()}); });
+        const entries = []; document.querySelectorAll('.cat-input').forEach(i => { if(i.value.trim()) entries.push({category: i.dataset.cat, caseId: i.value.trim()}); });
         if(!entries.length) return;
-        
-        // Instant Local UI Update
-        const act = document.getElementById('displayActual'); act.innerText = parseInt(act.innerText) + entries.length;
+        document.getElementById('displayActual').innerText = parseInt(document.getElementById('displayActual').innerText) + entries.length;
         document.querySelectorAll('.cat-input').forEach(i => i.value = ""); 
-
         fetch(SCRIPT_URL, { method:'POST', mode: 'no-cors', body: JSON.stringify({action:'saveData', date: new Date().toISOString().split('T')[0], employee: currentUser, target: document.getElementById('displayTarget').innerText, entries}) }).then(() => refreshView());
         Swal.fire({ toast: true, position: 'top-end', showConfirmButton: false, timer: 1000, icon: 'success', title: 'บันทึกสำเร็จ' });
     }
@@ -217,11 +243,9 @@
 
     function updateSubFilters() {
         const selM = document.getElementById('selMonth');
-        const ms = ["ม.ค.","ก.พ.","มี.ค.","เม.ย.","พ.ค.","มิ.ย.","ก.ค.","ส.ค.","ก.ย.","ต.ค.","พ.ย.","ธ.ค."];
-        const currentM = new Date().getMonth() + 1;
-        // หากเป็นการเลือกแบบรายเดือน/รายวัน ให้ตั้งค่า Default เป็นเดือนปัจจุบัน
         if(selM.options.length === 0) {
-            selM.innerHTML = ms.map((m, i) => `<option value="${i+1}" ${i+1===currentM?'selected':''}>${m}</option>`).join('');
+            const ms = ["ม.ค.","ก.พ.","มี.ค.","เม.ย.","พ.ค.","มิ.ย.","ก.ค.","ส.ค.","ก.ย.","ต.ค.","พ.ย.","ธ.ค."];
+            selM.innerHTML = ms.map((m, i) => `<option value="${i+1}" ${i+1===(new Date().getMonth()+1)?'selected':''}>${m}</option>`).join('');
         }
         updateDayFilter();
     }
@@ -230,8 +254,7 @@
         const ys = Array.from(document.getElementById('selYear').selectedOptions).map(o => o.value);
         const ms = Array.from(document.getElementById('selMonth').selectedOptions).map(o => o.value);
         let ds = allPlans.filter(p => p[1] === currentUser && ys.includes(new Date(p[0]).getFullYear().toString()) && ms.includes((new Date(p[0]).getMonth()+1).toString())).map(p => p[0].split('T')[0]);
-        const todayStr = new Date().toISOString().split('T')[0];
-        document.getElementById('selDay').innerHTML = [...new Set(ds)].sort().map(d => `<option value="${d}" ${d===todayStr?'selected':''}>${new Date(d).getDate()}/${new Date(d).getMonth()+1}</option>`).join('');
+        document.getElementById('selDay').innerHTML = [...new Set(ds)].sort().map(d => `<option value="${d}" ${d===new Date().toISOString().split('T')[0]?'selected':''}>${new Date(d).getDate()}/${new Date(d).getMonth()+1}</option>`).join('');
         processDashboard();
     }
 
@@ -243,42 +266,21 @@
     }
 
     function processDashboard() {
-        const type = document.getElementById('viewType').value;
-        const sY = Array.from(document.getElementById('selYear').selectedOptions).map(o => o.value);
-        const sQ = Array.from(document.getElementById('selQuarter').selectedOptions).map(o => o.value);
-        const sM = Array.from(document.getElementById('selMonth').selectedOptions).map(o => o.value);
-        const sD = Array.from(document.getElementById('selDay').selectedOptions).map(o => o.value);
+        const type = document.getElementById('viewType').value, sY = Array.from(document.getElementById('selYear').selectedOptions).map(o => o.value), sQ = Array.from(document.getElementById('selQuarter').selectedOptions).map(o => o.value), sM = Array.from(document.getElementById('selMonth').selectedOptions).map(o => o.value), sD = Array.from(document.getElementById('selDay').selectedOptions).map(o => o.value);
         let groups = {};
-
         allPlans.filter(p => p[1] === currentUser).forEach(p => {
             const d = new Date(p[0]), y = d.getFullYear().toString(), m = (d.getMonth()+1).toString(), q = "Q" + Math.ceil(m/3), f = p[0].split('T')[0];
             let k = (type==='yearly'&&sY.includes(y))?y:(type==='quarterly'&&sY.includes(y)&&sQ.includes(q))?`${q}/${y}`:(type==='monthly'&&sY.includes(y)&&sM.includes(m))?`${m}/${y}`:(type==='daily'&&sD.includes(f))?f:"";
             if(k) { if(!groups[k]) groups[k] = { t: 0, a: 0, c: {} }; groups[k].t += parseInt(p[3]); }
         });
-
         allData.filter(d => d[1] === currentUser).forEach(d => {
             const date = new Date(d[0]), y = date.getFullYear().toString(), m = (date.getMonth()+1).toString(), q = "Q" + Math.ceil(m/3), f = d[0].split('T')[0], cat = d[2];
             let k = (type==='yearly'&&sY.includes(y))?y:(type==='quarterly'&&sY.includes(y)&&sQ.includes(q))?`${q}/${y}`:(type==='monthly'&&sY.includes(y)&&sM.includes(m))?`${m}/${y}`:(type==='daily'&&sD.includes(f))?f:"";
             if(k && groups[k]) { groups[k].a++; groups[k].c[cat] = (groups[k].c[cat] || 0) + 1; }
         });
-
         const labs = Object.keys(groups).sort();
         if (chartInstance) chartInstance.destroy();
-        chartInstance = new Chart(document.getElementById('perfChart'), {
-            type: currentChartType,
-            data: { 
-                labels: labs, 
-                datasets: [
-                    { label: 'เป้าหมาย', data: labs.map(l => groups[l].t), backgroundColor: '#ffcc80', borderColor: '#ffcc80', tension: 0.3, fill: false }, 
-                    { label: 'ทำจริง', data: labs.map(l => groups[l].a), backgroundColor: '#ff7043', borderColor: '#ff7043', tension: 0.3, fill: false }
-                ] 
-            },
-            options: { 
-                responsive: true, maintainAspectRatio: false, 
-                plugins: { datalabels: { anchor: 'end', align: 'top', color: '#5d4037', font: { weight: 'bold' } } } 
-            }
-        });
-
+        chartInstance = new Chart(document.getElementById('perfChart'), { type: currentChartType, data: { labels: labs, datasets: [{ label: 'เป้าหมาย', data: labs.map(l => groups[l].t), backgroundColor: '#ffcc80', borderColor: '#ffcc80', tension: 0.3 }, { label: 'ทำจริง', data: labs.map(l => groups[l].a), backgroundColor: '#ff7043', borderColor: '#ff7043', tension: 0.3 }] }, options: { responsive: true, maintainAspectRatio: false, plugins: { datalabels: { anchor: 'end', align: 'top', color: '#5d4037', font: { weight: 'bold' } } } } });
         let h = ""; labs.forEach(l => {
             const bal = groups[l].a - groups[l].t;
             h += `<tr><td>${l}</td><td>${groups[l].t}</td><td>${groups[l].a}</td><td class="${bal>=0?'text-success':'text-danger'} fw-bold">${(bal>0?"+":"")+bal}</td><td>${groups[l].c['Call IN']||0}</td><td>${groups[l].c['IR']||0}</td><td>${groups[l].c['CP No.']||0}</td><td>${groups[l].c['Drop Call']||0}</td><td>${groups[l].c['SR']||0}</td></tr>`;
@@ -287,7 +289,7 @@
     }
 
     async function savePlan(a, d) { Swal.showLoading(); await fetch(SCRIPT_URL, {method:'POST', body: JSON.stringify({action:'savePlan', subAction: a, date: d || document.getElementById('planDate').value, employee: currentUser, target: document.getElementById('planType').value, workType:'Plan'})}); await refreshView(); Swal.close(); }
-    async function manualRefresh() { Swal.fire({title:'Syncing...', didOpen:()=>Swal.showLoading(), timer: 800}); await refreshView(); }
+    function logout() { location.reload(); }
 </script>
 </body>
 </html>
