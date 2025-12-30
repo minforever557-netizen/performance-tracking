@@ -3,131 +3,129 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Performance V43 - 10 Min Sync</title>
+    <title>Performance V56 - Final Logic</title>
     <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
     <link href="https://fonts.googleapis.com/css2?family=Prompt:wght@300;400;600&display=swap" rel="stylesheet">
     <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
-    <script src="https://cdn.jsdelivr.net/npm/chartjs-plugin-datalabels@2.0.0"></script>
+    <script src="https://cdn.jsdelivr.net/npm/chartjs-plugin-datalabels@2.2.0"></script>
     <script src="https://cdn.jsdelivr.net/npm/sweetalert2@11"></script>
     <style>
-        :root { --soft-orange: #ffb347; --peach: #fff5e6; --white: #ffffff; --text-dark: #5d4037; --green: #2ecc71; --red: #e74c3c; }
-        body { font-family: 'Prompt', sans-serif; background-color: var(--peach); background-image: radial-gradient(#ffcc80 0.5px, transparent 0.5px); background-size: 20px 20px; min-height: 100vh; color: var(--text-dark); margin: 0; padding: 0; }
-        #loginSection { position: fixed; top: 0; left: 0; width: 100%; height: 100%; background-color: var(--peach); z-index: 9999; display: flex; align-items: center; justify-content: center; }
-        .glass-card { background: var(--white); border-radius: 20px; border: 2px solid #ffe0b2; box-shadow: 0 8px 20px rgba(255, 179, 71, 0.1); padding: 20px; margin-bottom: 20px; }
-        .btn-orange { background: var(--soft-orange); color: white; border-radius: 50px; font-weight: 600; border: none; padding: 10px 20px; box-shadow: 0 4px 10px rgba(255, 179, 71, 0.3); transition: 0.2s; }
-        .stat-box { background: #fff9f0; border-left: 5px solid var(--soft-orange); padding: 12px; border-radius: 15px; position: relative; }
-        .badge-count { position: absolute; top: -5px; right: -5px; background: #ff7043; color: white; border-radius: 50%; width: 24px; height: 24px; font-size: 0.75rem; display: flex; align-items: center; justify-content: center; font-weight: bold; }
-        .nav-btn { flex: 1; border-radius: 15px; font-weight: 600; border: 2px solid #ffe0b2; background: white; color: var(--soft-orange); }
-        .nav-btn.active-btn { background: var(--soft-orange); color: white; border-color: var(--soft-orange); }
-        .live-time-display { font-size: 2.5rem; font-weight: 600; color: #e65100; margin-bottom: 5px; letter-spacing: 2px; }
+        :root { --soft-orange: #ffb347; --peach: #fff5e6; --white: #ffffff; --text-dark: #5d4037; --deep-orange: #e67e22; --green: #27ae60; --red: #e74c3c; --yellow: #f1c40f; }
+        body { font-family: 'Prompt', sans-serif; background-color: var(--peach); color: var(--text-dark); }
+        .glass-card { background: var(--white); border-radius: 20px; border: 2px solid #ffe0b2; box-shadow: 0 8px 20px rgba(255,179,71,0.1); padding: 20px; margin-bottom: 20px; }
+        
+        /* 🎨 Status Colors */
+        .bal-pos { color: var(--green) !important; }
+        .bal-zero { color: var(--yellow) !important; }
+        .bal-neg { color: var(--red) !important; }
+
+        /* 📊 Progress Bar */
+        .progress { height: 12px; border-radius: 10px; background-color: #eee; margin-bottom: 15px; }
+        .progress-bar { transition: width 0.5s ease; }
+
+        /* Case ID Input */
+        .case-card { background: #fff; border: 1.5px solid #ffcc80; border-radius: 18px; padding: 15px; height: 100%; }
+        .badge-circle { background: var(--deep-orange); color: white; border-radius: 50%; width: 30px; height: 30px; display: inline-flex; align-items: center; justify-content: center; font-weight: 800; font-size: 0.85rem; margin-right: 8px; }
+        .case-label { font-weight: 600; font-size: 0.95rem; display: flex; align-items: center; margin-bottom: 12px; }
+        .case-input-modern { border: 2px solid #eee; border-radius: 10px; font-size: 1rem; padding: 10px; width: 100%; text-align: center; font-weight: 600; color: var(--deep-orange); }
+        
+        .nav-btn { flex: 1; border-radius: 15px; font-weight: 600; border: 2px solid #ffe0b2; background: white; color: var(--soft-orange); padding: 10px; }
+        .nav-btn.active-btn { background: var(--soft-orange) !important; color: white !important; }
         .hidden-completely { display: none !important; }
-        .sync-info { font-size: 0.75rem; color: #8d6e63; margin-top: 10px; }
-        .btn-refresh-mini { background: #fff3e0; border: 1px solid #ffcc80; border-radius: 10px; color: #e65100; font-size: 0.8rem; padding: 2px 10px; cursor: pointer; }
-        .chart-toggle-btn { font-size: 0.8rem; padding: 4px 12px; border-radius: 10px; border: 1px solid var(--soft-orange); background: white; color: var(--soft-orange); }
-        .chart-toggle-btn.active { background: var(--soft-orange); color: white; }
+        .filter-row { display: flex; gap: 8px; overflow-x: auto; }
+        .filter-item { min-width: 110px; flex: 1; }
     </style>
 </head>
 <body>
 
-<div id="loginSection">
-    <div class="glass-card text-center shadow-lg" style="max-width:380px; width:90%; border-top: 8px solid var(--soft-orange);">
-        <h2 class="fw-bold mb-4" style="color: var(--soft-orange);">🍊 Performance</h2>
-        <input type="text" id="user" class="form-control mb-3 py-2" placeholder="Username">
-        <input type="password" id="pass" class="form-control mb-4 py-2" placeholder="Password">
-        <button id="btnLogin" onclick="login()" class="btn btn-orange w-100 py-2 shadow"><span id="loginText">เข้าสู่ระบบ</span></button>
-        <div id="loginStatus" class="mt-3 small text-muted hidden-completely">⌛ กำลังเชื่อมต่อ...</div>
+<div id="loginSection" style="position:fixed; width:100%; height:100%; z-index:9999; background:var(--peach); display:flex; align-items:center; justify-content:center;">
+    <div class="glass-card text-center shadow-lg" style="width:90%; max-width:380px;">
+        <h3 class="fw-bold mb-4" style="color: var(--deep-orange);">🍊 Member Login</h3>
+        <input type="text" id="user" class="form-control mb-3" placeholder="Username">
+        <input type="password" id="pass" class="form-control mb-4" placeholder="Password">
+        <button id="btnLogin" onclick="login()" class="btn btn-warning w-100 fw-bold text-white shadow-sm py-2">เข้าสู่ระบบ</button>
+        <div id="loginStatus" class="mt-3 small fw-bold text-muted" style="display:none;">⌛ อยู่ระหว่างดำเนินการ โปรดรอสักครู่...</div>
     </div>
 </div>
 
 <div id="mainSection" class="hidden-completely">
     <nav class="navbar mb-3 p-3 glass-card mx-2 mt-2">
-        <div class="container d-flex justify-content-between align-items-center">
-            <span class="navbar-brand fw-bold" style="color: #e65100;">🍊 V.43 10-Min Sync</span>
-            <div class="text-end">
-                <div class="small fw-bold">👤 <span id="empName"></span></div>
-                <button onclick="logout()" class="btn btn-sm btn-link text-danger text-decoration-none p-0">ออกจากระบบ</button>
-            </div>
+        <div class="container d-flex justify-content-between">
+            <span class="fw-bold" style="color: #e65100;">🍊 PRO V.56</span>
+            <div class="text-end small">👤 <span id="empName"></span> | <a href="#" onclick="logout()" class="text-danger fw-bold">Logout</a></div>
         </div>
     </nav>
 
     <div class="container pb-5">
         <div class="d-flex gap-2 mb-4 p-1 bg-white shadow-sm" style="border-radius: 20px;">
-            <button id="nav-rec" class="btn nav-btn active-btn" onclick="showTab('record')">บันทึกงาน</button>
+            <button id="nav-record" class="btn nav-btn active-btn" onclick="showTab('record')">บันทึกงาน</button>
             <button id="nav-dash" class="btn nav-btn" onclick="showTab('dash')">Dashboard</button>
             <button id="nav-assign" class="btn nav-btn" onclick="showTab('assign')">แผนงาน</button>
         </div>
 
-        <div id="tab-record" class="tab-content text-center">
-            <div class="glass-card mb-3">
-                <div class="d-flex justify-content-end mb-2">
-                    <button class="btn-refresh-mini" onclick="manualRefresh()">🔄 Sync ข้อมูล</button>
+        <div id="tab-record" class="tab-content">
+            <div class="glass-card text-center mb-4">
+                <div class="d-flex justify-content-between align-items-center mb-2">
+                    <span id="displayDateText" class="small fw-bold text-muted">📅 -</span>
+                    <button class="btn btn-sm btn-outline-warning rounded-pill px-3" onclick="manualRefresh()">🔄 Sync</button>
                 </div>
-                <div id="bigClock" class="live-time-display">00:00:00</div>
-                <h6 id="displayDateText" class="fw-bold text-muted mb-3"></h6>
-                <div class="row g-2 mt-2">
-                    <div class="col-4"><div class="stat-box shadow-sm small">เป้า<br><span id="displayTarget" class="h5 fw-bold">0</span></div></div>
-                    <div class="col-4"><div class="stat-box shadow-sm small" style="border-left-color:var(--green)">จริง<br><span id="displayActual" class="h5 fw-bold text-success">0</span></div></div>
-                    <div class="col-4"><div class="stat-box shadow-sm small" id="balanceBox">+/-<br><span id="displayBalance" class="h5 fw-bold">0</span></div></div>
+                <div id="bigClock" class="h1 fw-bold text-warning mb-1">00:00:00</div>
+                
+                <div class="px-2">
+                    <div class="d-flex justify-content-between small fw-bold mb-1">
+                        <span>Success Rate</span>
+                        <span id="progressPctText">0%</span>
+                    </div>
+                    <div class="progress">
+                        <div id="goalProgress" class="progress-bar bg-success" style="width: 0%"></div>
+                    </div>
                 </div>
-                <div class="sync-info">อัปเดตล่าสุด: <span class="last-sync-time">-</span></div>
+
+                <div class="row g-2">
+                    <div class="col-4"><div class="stat-box p-2 border rounded-3">เป้า<br><span id="displayTarget" class="h5 fw-bold">0</span></div></div>
+                    <div class="col-4"><div class="stat-box p-2 border rounded-3">จริง<br><span id="displayActual" class="h5 fw-bold">0</span></div></div>
+                    <div class="col-4"><div class="stat-box p-2 border rounded-3">+/-<br><span id="displayBalance" class="h5 fw-bold">0</span></div></div>
+                </div>
+                <div class="text-end mt-2" style="font-size: 0.7rem; color: #bbb;">Sync: <span class="last-sync-time">-</span></div>
             </div>
+
             <div class="row g-3">
-                <div class="col-6 col-md-4"><div class="stat-box">📦 CP No. <span class="badge-count" id="count-CP">0</span><input type="text" class="form-control mt-2 cat-input" data-cat="CP No."></div></div>
-                <div class="col-6 col-md-4"><div class="stat-box">📞 Call IN <span class="badge-count" id="count-Call">0</span><input type="text" class="form-control mt-2 cat-input" data-cat="Call IN"></div></div>
-                <div class="col-6 col-md-4"><div class="stat-box">📄 IR <span class="badge-count" id="count-IR">0</span><input type="text" class="form-control mt-2 cat-input" data-cat="IR"></div></div>
-                <div class="col-6 col-md-4"><div class="stat-box">📵 Drop Call <span class="badge-count" id="count-DropCall">0</span><input type="text" class="form-control mt-2 cat-input" data-cat="Drop Call"></div></div>
-                <div class="col-6 col-md-4"><div class="stat-box">🛠️ SR <span class="badge-count" id="count-SR">0</span><input type="text" class="form-control mt-2 cat-input" data-cat="SR"></div></div>
-                <div class="col-6 col-md-4"><div class="stat-box">🎁 Camp. <span class="badge-count" id="count-Campaign">0</span><input type="text" class="form-control mt-2 cat-input" data-cat="Campaign"></div></div>
+                <div class="col-6 col-md-4"><div class="case-card"><div class="case-label"><div class="badge-circle" id="count-CP">0</div>CP No.</div><input type="text" class="case-input-modern cat-input" data-cat="CP No." placeholder="เลขเคส"></div></div>
+                <div class="col-6 col-md-4"><div class="case-card"><div class="case-label"><div class="badge-circle" id="count-Call">0</div>Call IN</div><input type="text" class="case-input-modern cat-input" data-cat="Call IN" placeholder="เลขเคส"></div></div>
+                <div class="col-6 col-md-4"><div class="case-card"><div class="case-label"><div class="badge-circle" id="count-IR">0</div>IR</div><input type="text" class="case-input-modern cat-input" data-cat="IR" placeholder="เลขเคส"></div></div>
+                <div class="col-6 col-md-4"><div class="case-card"><div class="case-label"><div class="badge-circle" id="count-DropCall">0</div>Drop</div><input type="text" class="case-input-modern cat-input" data-cat="Drop Call" placeholder="เลขเคส"></div></div>
+                <div class="col-6 col-md-4"><div class="case-card"><div class="case-label"><div class="badge-circle" id="count-SR">0</div>SR</div><input type="text" class="case-input-modern cat-input" data-cat="SR" placeholder="เลขเคส"></div></div>
+                <div class="col-6 col-md-4"><div class="case-card"><div class="case-label"><div class="badge-circle" id="count-Campaign">0</div>Camp.</div><input type="text" class="case-input-modern cat-input" data-cat="Campaign" placeholder="เลขเคส"></div></div>
             </div>
-            <button onclick="saveWork()" class="btn btn-orange w-100 mt-4 py-3 shadow">🚀 บันทึกงาน</button>
+            <button onclick="saveWork()" class="btn btn-warning w-100 text-white fw-bold mt-4 py-3 shadow">🚀 บันทึกงานทั้งหมด</button>
         </div>
 
         <div id="tab-dash" class="tab-content hidden-completely">
-            <div class="glass-card mb-3">
-                <div class="d-flex justify-content-between align-items-center mb-3">
-                    <h6 class="fw-bold m-0">📊 Performance Summary</h6>
-                    <div class="d-flex gap-2">
-                        <button class="btn-refresh-mini" onclick="manualRefresh()">🔄 Sync</button>
-                        <div class="btn-group shadow-sm">
-                            <button id="btnBar" class="chart-toggle-btn active" onclick="setChartType('bar')">Bar</button>
-                            <button id="btnLine" class="chart-toggle-btn" onclick="setChartType('line')">Line</button>
-                        </div>
-                    </div>
+            <div class="glass-card">
+                <div class="filter-row mb-3">
+                    <div class="filter-item"><label class="small fw-bold">มุมมอง</label><select id="viewType" class="form-select form-select-sm" onchange="toggleFilters(); processDashboard();"><option value="daily">รายวัน</option><option value="monthly">รายเดือน</option><option value="quarterly">ไตรมาส</option><option value="yearly">รายปี</option></select></div>
+                    <div class="filter-item" id="divYear"><label class="small fw-bold">ปี</label><select id="selYear" class="form-select form-select-sm" multiple onchange="processDashboard();"></select></div>
+                    <div class="filter-item hidden-completely" id="divQuarter"><label class="small fw-bold">ไตรมาส</label><select id="selQuarter" class="form-select form-select-sm" multiple onchange="processDashboard();"><option value="1" selected>Q1</option><option value="2" selected>Q2</option><option value="3" selected>Q3</option><option value="4" selected>Q4</option></select></div>
+                    <div class="filter-item" id="divMonth"><label class="small fw-bold">เดือน</label><select id="selMonth" class="form-select form-select-sm" multiple onchange="updateDayFilter(); processDashboard();"></select></div>
+                    <div class="filter-item" id="divDay"><label class="small fw-bold">วัน</label><select id="selDay" class="form-select form-select-sm" multiple onchange="processDashboard();"></select></div>
                 </div>
-                <div class="row g-2 mb-3">
-                    <div class="col-6 col-md-3"><label class="small fw-bold">ประเภท</label><select id="viewType" class="form-select" onchange="toggleFilters(); processDashboard();"><option value="daily">รายวัน</option><option value="monthly">รายเดือน</option><option value="quarterly">รายไตรมาส</option><option value="yearly">รายปี</option></select></div>
-                    <div class="col-6 col-md-3" id="divYear"><label class="small fw-bold">ปี</label><select id="selYear" class="form-select" multiple onchange="updateSubFilters(); processDashboard();"></select></div>
-                    <div class="col-6 col-md-3 hidden-completely" id="divQuarter"><label class="small fw-bold">ไตรมาส</label><select id="selQuarter" class="form-select" multiple onchange="processDashboard();"><option value="Q1" selected>Q1</option><option value="Q2" selected>Q2</option><option value="Q3" selected>Q3</option><option value="Q4" selected>Q4</option></select></div>
-                    <div class="col-6 col-md-3" id="divMonth"><label class="small fw-bold">เดือน</label><select id="selMonth" class="form-select" multiple onchange="updateDayFilter(); processDashboard();"></select></div>
-                    <div class="col-6 col-md-3" id="divDay"><label class="small fw-bold">วันที่</label><select id="selDay" class="form-select" multiple onchange="processDashboard();"></select></div>
-                </div>
-                <div class="sync-info text-center">อัปเดตล่าสุด: <span class="last-sync-time">-</span> (Auto-Sync ทุก 10 นาที)</div>
-            </div>
-            <div class="glass-card" style="height: 380px;"><canvas id="perfChart"></canvas></div>
-            <div class="glass-card px-0 overflow-hidden shadow-sm">
-                <div class="table-responsive">
-                    <table class="table table-hover text-center mb-0" style="font-size: 0.8rem;">
-                        <thead style="background: #fff3e0; color: #e65100;">
-                            <tr><th>เวลา</th><th>เป้า</th><th>จริง</th><th>+/-</th><th>Call</th><th>IR</th><th>CP</th><th>Drop</th><th>SR</th></tr>
-                        </thead>
-                        <tbody id="dashTableBody"></tbody>
-                    </table>
-                </div>
+                <div style="height: 350px;"><canvas id="perfChart"></canvas></div>
             </div>
         </div>
 
         <div id="tab-assign" class="tab-content hidden-completely">
             <div class="glass-card">
-                <h5 class="fw-bold mb-3">เป้าหมายงาน</h5>
-                <div class="row g-2 mb-4">
-                    <div class="col-md-5"><input type="date" id="planDate" class="form-control"></div>
-                    <div class="col-md-4"><select id="planType" class="form-select"><option value="72">เต็มวัน (72)</option><option value="36">ครึ่งวัน (36)</option></select></div>
-                    <div class="col-md-3"><button onclick="savePlan('save')" class="btn btn-orange w-100 shadow-sm">บันทึก</button></div>
+                <h6 class="fw-bold mb-3">📅 จัดการแผนงาน</h6>
+                <div class="row g-2 mb-3 p-2 bg-light rounded shadow-sm">
+                    <div class="col-5"><input type="date" id="planDate" class="form-control form-control-sm"></div>
+                    <div class="col-3"><select id="planType" class="form-select form-select-sm"><option value="72">72</option><option value="36">36</option></select></div>
+                    <div class="col-4"><button onclick="savePlan('save')" class="btn btn-warning btn-sm w-100 text-white">เพิ่มแผน</button></div>
                 </div>
-                <table class="table text-center table-sm">
-                    <thead><tr><th>วันที่</th><th>Target</th><th>ลบ</th></tr></thead>
-                    <tbody id="planTableBody"></tbody>
-                </table>
+                <div class="d-flex justify-content-between align-items-center mb-2">
+                    <span class="small fw-bold">Filter:</span>
+                    <select id="assignFilter" class="form-select form-select-sm w-50" onchange="renderPlanTable()"><option value="all">ทั้งหมด</option><option value="weekly">สัปดาห์นี้</option><option value="monthly">เดือนนี้</option></select>
+                </div>
+                <div class="table-responsive"><table class="table table-sm text-center small align-middle"><thead><tr><th>วันที่</th><th>Target</th><th>ลบ</th></tr></thead><tbody id="planTableBody"></tbody></table></div>
             </div>
         </div>
     </div>
@@ -136,160 +134,126 @@
 <script>
     const SCRIPT_URL = 'https://script.google.com/macros/s/AKfycbwQwqm_s6_0S6bcBX6xYXb8pLzxDJy5-m5AotyIV4f6uJPxYmTrmNkaXWQsGpk0PwY/exec';
     let currentUser = "", allData = [], allPlans = [], chartInstance = null, currentChartType = 'bar';
-    let syncInterval = null;
-    Chart.register(ChartDataLabels);
 
-    setInterval(() => {
-        const el = document.getElementById('bigClock');
-        if(el) el.innerText = new Date().toLocaleTimeString('th-TH', { hour12: false });
-    }, 1000);
+    Chart.register(ChartDataLabels);
 
     async function login() {
         const u = document.getElementById('user').value.trim(), p = document.getElementById('pass').value.trim();
         if(!u || !p) return;
-        document.getElementById('loginStatus').classList.remove('hidden-completely');
+        document.getElementById('btnLogin').disabled = true; document.getElementById('loginStatus').style.display = 'block';
         try {
             const res = await (await fetch(`${SCRIPT_URL}?action=login&user=${encodeURIComponent(u)}&pass=${encodeURIComponent(p)}`)).json();
             if (res.status === "success") {
                 currentUser = res.name; document.getElementById('empName').innerText = res.name;
-                await refreshView(); 
                 document.getElementById('loginSection').classList.add('hidden-completely');
                 document.getElementById('mainSection').classList.remove('hidden-completely');
-                startAutoSync();
-            } else { Swal.fire('Error', 'Username หรือ Password ไม่ถูกต้อง', 'error'); }
-        } catch(e) { Swal.fire('Error', 'Connection Error', 'error'); }
+                await refreshView(); initDashboardFilters();
+            } else { Swal.fire('Error', 'เข้าระบบไม่สำเร็จ', 'error'); document.getElementById('btnLogin').disabled = false; document.getElementById('loginStatus').style.display = 'none'; }
+        } catch(e) { console.error(e); }
     }
 
-    // แก้ไขเป็น 600,000 ms (10 นาที)
-    function startAutoSync() {
-        if(syncInterval) clearInterval(syncInterval);
-        syncInterval = setInterval(() => { refreshView(true); }, 600000); 
-    }
-
-    async function manualRefresh() {
-        const btn = event.target;
-        btn.innerText = "⏳ Syncing..."; btn.disabled = true;
-        await refreshView();
-        btn.innerText = "🔄 Sync ข้อมูล"; btn.disabled = false;
-        Swal.fire({ toast: true, position: 'top-end', showConfirmButton: false, timer: 1500, icon: 'success', title: 'อัปเดตล่าสุดเรียบร้อย' });
-    }
-
-    async function refreshView(silent = false) {
+    async function refreshView() {
         try {
             const res = await (await fetch(SCRIPT_URL)).json();
             allData = res.data.slice(1); allPlans = res.plans.slice(1);
             const todayStr = new Date().toISOString().split('T')[0];
-            const userPlans = allPlans.filter(p => p[1] === currentUser);
-            const todayData = allData.filter(d => d[0].split('T')[0] === todayStr && d[1] === currentUser);
-            const target = parseInt(userPlans.find(p => p[0].split('T')[0] === todayStr)?.[3] || 0);
+            const myToday = allData.filter(d => (d[0]?d[0].split('T')[0]:"") === todayStr && d[1] === currentUser);
+            const target = parseInt(allPlans.filter(p => p[1] === currentUser).find(p => p[0].split('T')[0] === todayStr)?.[3] || 0);
+            
+            // Stats Calculations
+            const actual = myToday.length;
+            const balance = actual - target;
+            const balEl = document.getElementById('displayBalance');
             
             document.getElementById('displayTarget').innerText = target;
-            document.getElementById('displayActual').innerText = todayData.length;
-            const bal = todayData.length - target;
-            const balEl = document.getElementById('displayBalance');
-            balEl.innerText = (bal > 0 ? "+" : "") + bal;
-            balEl.className = "h5 fw-bold " + (bal >= 0 ? "text-success" : "text-danger");
-            document.getElementById('balanceBox').style.borderLeftColor = bal >= 0 ? "var(--green)" : "var(--red)";
-            document.getElementById('displayDateText').innerText = '📅 ' + new Date().toLocaleDateString('th-TH', {day:'numeric', month:'long', year:'numeric'});
+            document.getElementById('displayActual').innerText = actual;
+            balEl.innerText = (balance > 0 ? "+" : "") + balance;
             
-            const cats = { "CP": "CP No.", "Call": "Call IN", "IR": "IR", "DropCall": "Drop Call", "SR": "SR", "Campaign": "Campaign" };
-            for (let id in cats) {
-                const el = document.getElementById(`count-${id}`);
-                if(el) el.innerText = todayData.filter(d => d[2] === cats[id]).length;
-            }
+            // ✅ Color Logic for Balance
+            balEl.className = "h5 fw-bold " + (balance > 0 ? "bal-pos" : (balance === 0 ? "bal-zero" : "bal-neg"));
 
-            const syncTimes = document.querySelectorAll('.last-sync-time');
-            syncTimes.forEach(el => el.innerText = new Date().toLocaleTimeString('th-TH'));
+            // ✅ Progress Bar Update
+            const pct = target > 0 ? Math.min(Math.round((actual / target) * 100), 100) : 0;
+            document.getElementById('goalProgress').style.width = pct + "%";
+            document.getElementById('progressPctText').innerText = pct + "%";
 
-            let h = ""; userPlans.sort((a,b)=>new Date(b[0])-new Date(a[0])).slice(0,5).forEach(p => {
-                h += `<tr><td>${new Date(p[0]).toLocaleDateString('th-TH')}</td><td>${p[3]}</td><td><button class="btn btn-sm text-danger" onclick="savePlan('delete','${p[0].split('T')[0]}')">ลบ</button></td></tr>`;
-            });
-            document.getElementById('planTableBody').innerHTML = h;
-            if(!document.getElementById('tab-dash').classList.contains('hidden-completely')) processDashboard();
-        } catch(e) { console.error(e); }
+            // ✅ Time & Sync Update
+            document.getElementById('displayDateText').innerText = "📅 " + new Date().toLocaleDateString('th-TH');
+            document.querySelectorAll('.last-sync-time').forEach(el => el.innerText = new Date().toLocaleTimeString('th-TH'));
+
+            const map = { "CP": "CP No.", "Call": "Call IN", "IR": "IR", "DropCall": "Drop Call", "SR": "SR", "Campaign": "Campaign" };
+            for (let k in map) { document.getElementById(`count-${k}`).innerText = myToday.filter(r => r[2] === map[k]).length; }
+            renderPlanTable();
+        } catch(e) {}
     }
 
-    async function saveWork() {
-        const entries = []; document.querySelectorAll('.cat-input').forEach(i => { if(i.value.trim()) entries.push({category: i.dataset.cat, caseId: i.value.trim()}); });
-        if(!entries.length) return;
-        document.getElementById('displayActual').innerText = parseInt(document.getElementById('displayActual').innerText) + entries.length;
-        document.querySelectorAll('.cat-input').forEach(i => i.value = ""); 
-        fetch(SCRIPT_URL, { method:'POST', mode: 'no-cors', body: JSON.stringify({action:'saveData', date: new Date().toISOString().split('T')[0], employee: currentUser, target: document.getElementById('displayTarget').innerText, entries}) }).then(() => refreshView());
-        Swal.fire({ toast: true, position: 'top-end', showConfirmButton: false, timer: 1000, icon: 'success', title: 'บันทึกสำเร็จ' });
+    // Dashboard & Filter Logic (คงเดิมจาก V55)
+    function toggleFilters() {
+        const t = document.getElementById('viewType').value;
+        document.getElementById('divQuarter').classList.toggle('hidden-completely', t !== 'quarterly');
+        document.getElementById('divMonth').classList.toggle('hidden-completely', t === 'yearly' || t === 'quarterly');
+        document.getElementById('divDay').classList.toggle('hidden-completely', t !== 'daily');
+        updateDayFilter();
+    }
+    function initDashboardFilters() {
+        const years = [...new Set(allPlans.map(p => new Date(p[0]).getFullYear()))].sort((a,b)=>b-a);
+        if(!years.length) years.push(new Date().getFullYear());
+        document.getElementById('selYear').innerHTML = years.map(y => `<option value="${y}" selected>${y}</option>`).join('');
+        const ms = ["ม.ค.","ก.พ.","มี.ค.","เม.ย.","พ.ค.","มิ.ย.","ก.ค.","ส.ค.","ก.ย.","ต.ค.","พ.ย.","ธ.ค."];
+        document.getElementById('selMonth').innerHTML = ms.map((m, i) => `<option value="${i+1}" ${i+1===(new Date().getMonth()+1)?'selected':''}>${m}</option>`).join('');
+        toggleFilters();
+    }
+    function updateDayFilter() {
+        const ys = Array.from(document.getElementById('selYear').selectedOptions).map(o => o.value);
+        const ms = Array.from(document.getElementById('selMonth').selectedOptions).map(o => o.value);
+        let ds = allPlans.filter(p => p[1] === currentUser && ys.includes(new Date(p[0]).getFullYear().toString()) && ms.includes((new Date(p[0]).getMonth()+1).toString())).map(p => p[0].split('T')[0]);
+        document.getElementById('selDay').innerHTML = [...new Set(ds)].sort().map(d => `<option value="${d}" selected>${d.split('-')[2]}/${d.split('-')[1]}</option>`).join('');
+    }
+    function processDashboard() {
+        const type = document.getElementById('viewType').value, sY = Array.from(document.getElementById('selYear').selectedOptions).map(o => o.value);
+        const sM = Array.from(document.getElementById('selMonth').selectedOptions).map(o => o.value), sQ = Array.from(document.getElementById('selQuarter').selectedOptions).map(o => o.value), sD = Array.from(document.getElementById('selDay').selectedOptions).map(o => o.value);
+        let groups = {};
+        allPlans.filter(p => p[1] === currentUser).forEach(p => {
+            const d = new Date(p[0]), y = d.getFullYear().toString(), m = (d.getMonth()+1).toString(), q = Math.ceil(parseInt(m)/3).toString(), f = p[0].split('T')[0];
+            let key = (type==='yearly'&&sY.includes(y))?y : (type==='monthly'&&sY.includes(y)&&sM.includes(m))?`${m}/${y}` : (type==='quarterly'&&sY.includes(y)&&sQ.includes(q))?`Q${q}-${y}` : (type==='daily'&&sD.includes(f))?f : "";
+            if(key) { if(!groups[key]) groups[key] = { t:0, a:0 }; groups[key].t += parseInt(p[3]); }
+        });
+        allData.filter(d => d[1] === currentUser).forEach(d => { const f = d[0].split('T')[0]; if(groups[f]) groups[f].a++; });
+        const labels = Object.keys(groups).sort();
+        if(chartInstance) chartInstance.destroy();
+        chartInstance = new Chart(document.getElementById('perfChart'), {
+            type: 'bar', data: { labels: labels, datasets: [
+                { label: 'เป้า', data: labels.map(l => groups[l].t), backgroundColor: '#ffe0b2', datalabels: { display: true, align: 'top' } },
+                { label: 'จริง', data: labels.map(l => groups[l].a), backgroundColor: '#ff7043', datalabels: { display: true, align: 'top' } }
+            ]}, options: { responsive: true, maintainAspectRatio: false }
+        });
     }
 
     function showTab(t) {
         document.querySelectorAll('.tab-content').forEach(el => el.classList.add('hidden-completely'));
         document.getElementById('tab-' + t).classList.remove('hidden-completely');
         document.querySelectorAll('.nav-btn').forEach(btn => btn.classList.remove('active-btn'));
-        document.getElementById('nav-' + (t==='record'?'rec':t)).classList.add('active-btn');
-        if(t === 'dash') { initDashboard(); }
+        document.getElementById('nav-' + t).classList.add('active-btn');
+        if(t === 'dash') processDashboard();
     }
-
-    function initDashboard() {
-        const years = [...new Set(allPlans.filter(p => p[1] === currentUser).map(p => new Date(p[0]).getFullYear()))].sort((a,b)=>b-a);
-        if(!years.length) years.push(new Date().getFullYear());
-        document.getElementById('selYear').innerHTML = years.map(y => `<option value="${y}" selected>${y}</option>`).join('');
-        toggleFilters();
+    async function manualRefresh() { Swal.showLoading(); await refreshView(); Swal.close(); }
+    function renderPlanTable() {
+        const filter = document.getElementById('assignFilter').value;
+        const now = new Date(); const startOfWeek = new Date(now.setDate(now.getDate() - now.getDay()));
+        let f = allPlans.filter(p => p[1] === currentUser);
+        if(filter === 'weekly') f = f.filter(p => new Date(p[0]) >= startOfWeek);
+        else if(filter === 'monthly') f = f.filter(p => new Date(p[0]).getMonth() === new Date().getMonth());
+        document.getElementById('planTableBody').innerHTML = f.sort((a,b)=>new Date(b[0])-new Date(a[0])).map(p => `<tr><td>${p[0].split('T')[0]}</td><td>${p[3]}</td><td><button class="btn btn-sm text-danger" onclick="savePlan('delete','${p[0].split('T')[0]}')">🗑️</button></td></tr>`).join('');
     }
-
-    function toggleFilters() {
-        const t = document.getElementById('viewType').value;
-        document.getElementById('divQuarter').classList.toggle('hidden-completely', t !== 'quarterly');
-        document.getElementById('divMonth').classList.toggle('hidden-completely', t === 'yearly' || t === 'quarterly');
-        document.getElementById('divDay').classList.toggle('hidden-completely', t !== 'daily');
-        updateSubFilters();
+    async function savePlan(a, d) { await fetch(SCRIPT_URL, {method:'POST', body: JSON.stringify({action:'savePlan', subAction: a, date: d || document.getElementById('planDate').value, employee: currentUser, target: document.getElementById('planType').value})}); refreshView(); }
+    async function saveWork() {
+        const entries = []; document.querySelectorAll('.cat-input').forEach(i => { if(i.value.trim()) i.value.split(',').forEach(id => entries.push({category: i.dataset.cat, caseId: id.trim()})); });
+        if(!entries.length) return;
+        await fetch(SCRIPT_URL, { method:'POST', mode: 'no-cors', body: JSON.stringify({action:'saveData', date: new Date().toISOString().split('T')[0], employee: currentUser, target: document.getElementById('displayTarget').innerText, entries}) });
+        document.querySelectorAll('.cat-input').forEach(i => i.value = ""); refreshView();
     }
-
-    function updateSubFilters() {
-        const selM = document.getElementById('selMonth');
-        if(selM.options.length === 0) {
-            const ms = ["ม.ค.","ก.พ.","มี.ค.","เม.ย.","พ.ค.","มิ.ย.","ก.ค.","ส.ค.","ก.ย.","ต.ค.","พ.ย.","ธ.ค."];
-            selM.innerHTML = ms.map((m, i) => `<option value="${i+1}" ${i+1===(new Date().getMonth()+1)?'selected':''}>${m}</option>`).join('');
-        }
-        updateDayFilter();
-    }
-
-    function updateDayFilter() {
-        const ys = Array.from(document.getElementById('selYear').selectedOptions).map(o => o.value);
-        const ms = Array.from(document.getElementById('selMonth').selectedOptions).map(o => o.value);
-        let ds = allPlans.filter(p => p[1] === currentUser && ys.includes(new Date(p[0]).getFullYear().toString()) && ms.includes((new Date(p[0]).getMonth()+1).toString())).map(p => p[0].split('T')[0]);
-        document.getElementById('selDay').innerHTML = [...new Set(ds)].sort().map(d => `<option value="${d}" ${d===new Date().toISOString().split('T')[0]?'selected':''}>${new Date(d).getDate()}/${new Date(d).getMonth()+1}</option>`).join('');
-        processDashboard();
-    }
-
-    function setChartType(type) {
-        currentChartType = type;
-        document.getElementById('btnBar').classList.toggle('active', type === 'bar');
-        document.getElementById('btnLine').classList.toggle('active', type === 'line');
-        processDashboard();
-    }
-
-    function processDashboard() {
-        const type = document.getElementById('viewType').value, sY = Array.from(document.getElementById('selYear').selectedOptions).map(o => o.value), sQ = Array.from(document.getElementById('selQuarter').selectedOptions).map(o => o.value), sM = Array.from(document.getElementById('selMonth').selectedOptions).map(o => o.value), sD = Array.from(document.getElementById('selDay').selectedOptions).map(o => o.value);
-        let groups = {};
-        allPlans.filter(p => p[1] === currentUser).forEach(p => {
-            const d = new Date(p[0]), y = d.getFullYear().toString(), m = (d.getMonth()+1).toString(), q = "Q" + Math.ceil(m/3), f = p[0].split('T')[0];
-            let k = (type==='yearly'&&sY.includes(y))?y:(type==='quarterly'&&sY.includes(y)&&sQ.includes(q))?`${q}/${y}`:(type==='monthly'&&sY.includes(y)&&sM.includes(m))?`${m}/${y}`:(type==='daily'&&sD.includes(f))?f:"";
-            if(k) { if(!groups[k]) groups[k] = { t: 0, a: 0, c: {} }; groups[k].t += parseInt(p[3]); }
-        });
-        allData.filter(d => d[1] === currentUser).forEach(d => {
-            const date = new Date(d[0]), y = date.getFullYear().toString(), m = (date.getMonth()+1).toString(), q = "Q" + Math.ceil(m/3), f = d[0].split('T')[0], cat = d[2];
-            let k = (type==='yearly'&&sY.includes(y))?y:(type==='quarterly'&&sY.includes(y)&&sQ.includes(q))?`${q}/${y}`:(type==='monthly'&&sY.includes(y)&&sM.includes(m))?`${m}/${y}`:(type==='daily'&&sD.includes(f))?f:"";
-            if(k && groups[k]) { groups[k].a++; groups[k].c[cat] = (groups[k].c[cat] || 0) + 1; }
-        });
-        const labs = Object.keys(groups).sort();
-        if (chartInstance) chartInstance.destroy();
-        chartInstance = new Chart(document.getElementById('perfChart'), { type: currentChartType, data: { labels: labs, datasets: [{ label: 'เป้าหมาย', data: labs.map(l => groups[l].t), backgroundColor: '#ffcc80', borderColor: '#ffcc80', tension: 0.3 }, { label: 'ทำจริง', data: labs.map(l => groups[l].a), backgroundColor: '#ff7043', borderColor: '#ff7043', tension: 0.3 }] }, options: { responsive: true, maintainAspectRatio: false, plugins: { datalabels: { anchor: 'end', align: 'top', color: '#5d4037', font: { weight: 'bold' } } } } });
-        let h = ""; labs.forEach(l => {
-            const bal = groups[l].a - groups[l].t;
-            h += `<tr><td>${l}</td><td>${groups[l].t}</td><td>${groups[l].a}</td><td class="${bal>=0?'text-success':'text-danger'} fw-bold">${(bal>0?"+":"")+bal}</td><td>${groups[l].c['Call IN']||0}</td><td>${groups[l].c['IR']||0}</td><td>${groups[l].c['CP No.']||0}</td><td>${groups[l].c['Drop Call']||0}</td><td>${groups[l].c['SR']||0}</td></tr>`;
-        });
-        document.getElementById('dashTableBody').innerHTML = h;
-    }
-
-    async function savePlan(a, d) { Swal.showLoading(); await fetch(SCRIPT_URL, {method:'POST', body: JSON.stringify({action:'savePlan', subAction: a, date: d || document.getElementById('planDate').value, employee: currentUser, target: document.getElementById('planType').value, workType:'Plan'})}); await refreshView(); Swal.close(); }
     function logout() { location.reload(); }
+    setInterval(() => { const el = document.getElementById('bigClock'); if(el) el.innerText = new Date().toLocaleTimeString('th-TH'); }, 1000);
 </script>
 </body>
 </html>
