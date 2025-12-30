@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Performance V33 - Balance Tracker</title>
+    <title>Performance V34 - Drop Call Update</title>
     <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
     <link href="https://fonts.googleapis.com/css2?family=Prompt:wght@300;400;600&display=swap" rel="stylesheet">
     <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
@@ -20,10 +20,8 @@
         .nav-btn.active-btn { background: var(--soft-orange); color: white; border-color: var(--soft-orange); }
         .sync-tag { font-size: 0.85rem; color: #ef6c00; background: #fff3e0; padding: 6px 15px; border-radius: 12px; font-weight: 600; border: 1px dashed #ffb347; }
         .live-time-display { font-size: 2.5rem; font-weight: 600; color: #e65100; margin-bottom: 5px; letter-spacing: 2px; }
-        .balance-text { font-size: 1.1rem; font-weight: 600; }
-        .text-plus { color: var(--green); }
-        .text-minus { color: var(--red); }
         .hidden { display: none !important; }
+        .table-custom thead { background: #fff3e0; color: #e65100; }
     </style>
 </head>
 <body>
@@ -40,7 +38,7 @@
 <div id="mainSection" class="hidden">
     <nav class="navbar mb-3 p-3 glass-card mx-2 mt-2">
         <div class="container d-flex justify-content-between align-items-center">
-            <span class="navbar-brand fw-bold" style="color: #e65100;">🍊 Performance Tracker</span>
+            <span class="navbar-brand fw-bold" style="color: #e65100;">🍊 Performance Analytics</span>
             <div class="text-end">
                 <div class="small fw-bold">👤 <span id="empName"></span></div>
                 <button onclick="logout()" class="btn btn-sm btn-link text-danger text-decoration-none p-0">ออกจากระบบ</button>
@@ -59,11 +57,10 @@
             <div class="glass-card mb-3">
                 <div id="bigClock" class="live-time-display">00:00:00</div>
                 <h6 id="displayDateText" class="fw-bold text-muted mb-3"></h6>
-                
                 <div class="row g-2 mt-2">
                     <div class="col-4"><div class="stat-box shadow-sm small">เป้า<br><span id="displayTarget" class="h5 fw-bold">0</span></div></div>
                     <div class="col-4"><div class="stat-box shadow-sm small" style="border-left-color:var(--green)">จริง<br><span id="displayActual" class="h5 fw-bold text-success">0</span></div></div>
-                    <div class="col-4"><div class="stat-box shadow-sm small" style="border-left-color:#3498db" id="balanceBox">ส่วนต่าง<br><span id="displayBalance" class="h5 fw-bold">0</span></div></div>
+                    <div class="col-4"><div class="stat-box shadow-sm small" id="balanceBox">Balance<br><span id="displayBalance" class="h5 fw-bold">0</span></div></div>
                 </div>
             </div>
 
@@ -71,21 +68,21 @@
                 <div class="col-6 col-md-4"><div class="stat-box">📦 CP No. <span class="badge-count" id="count-CP">0</span><input type="text" class="form-control mt-2 cat-input" data-cat="CP No."></div></div>
                 <div class="col-6 col-md-4"><div class="stat-box">📞 Call IN <span class="badge-count" id="count-Call">0</span><input type="text" class="form-control mt-2 cat-input" data-cat="Call IN"></div></div>
                 <div class="col-6 col-md-4"><div class="stat-box">📄 IR <span class="badge-count" id="count-IR">0</span><input type="text" class="form-control mt-2 cat-input" data-cat="IR"></div></div>
-                <div class="col-6 col-md-4"><div class="stat-box">🌐 GNS <span class="badge-count" id="count-GNS">0</span><input type="text" class="form-control mt-2 cat-input" data-cat="GNS"></div></div>
+                <div class="col-6 col-md-4"><div class="stat-box">📵 Drop Call <span class="badge-count" id="count-DropCall">0</span><input type="text" class="form-control mt-2 cat-input" data-cat="Drop Call"></div></div>
                 <div class="col-6 col-md-4"><div class="stat-box">🛠️ SR <span class="badge-count" id="count-SR">0</span><input type="text" class="form-control mt-2 cat-input" data-cat="SR"></div></div>
                 <div class="col-6 col-md-4"><div class="stat-box">🎁 Camp. <span class="badge-count" id="count-Campaign">0</span><input type="text" class="form-control mt-2 cat-input" data-cat="Campaign"></div></div>
             </div>
-            <button onclick="saveWork()" class="btn btn-orange w-100 mt-4 py-3 shadow">🚀 บันทึกข้อมูลงาน</button>
+            <button onclick="saveWork()" class="btn btn-orange w-100 mt-4 py-3 shadow">🚀 บันทึกข้อมูล</button>
         </div>
 
         <div id="tab-dash" class="tab-content hidden">
             <div class="glass-card mb-3">
                 <div class="d-flex justify-content-between align-items-center mb-3">
-                    <h6 class="fw-bold m-0">📊 วิเคราะห์ส่วนต่าง</h6>
-                    <button onclick="manualRefresh()" class="btn btn-sm btn-orange px-3 shadow-sm">🔄 Refresh Data</button>
+                    <h6 class="fw-bold m-0">📊 รายงานภาพรวม</h6>
+                    <button onclick="manualRefresh()" class="btn btn-sm btn-orange px-3 shadow-sm">🔄 Refresh</button>
                 </div>
                 <div class="text-center mb-4">
-                    <div class="sync-tag">🕒 อัปเดตเมื่อ: <span class="lastSyncDisplay">-</span></div>
+                    <div class="sync-tag">🕒 ล่าสุด: <span class="lastSyncDisplay">-</span></div>
                 </div>
                 <div class="row g-2">
                     <div class="col-md-3"><select id="viewType" class="form-select" onchange="toggleFilters()"><option value="daily">รายวัน</option><option value="monthly">รายเดือน</option><option value="quarterly">รายไตรมาส</option><option value="yearly">รายปี</option></select></div>
@@ -93,14 +90,14 @@
                     <div class="col-md-3" id="divMonth"><select id="selMonth" class="form-select" multiple onchange="updateDayFilter()"></select></div>
                     <div class="col-md-3" id="divDay"><select id="selDay" class="form-select" multiple></select></div>
                 </div>
-                <button onclick="processDashboard()" class="btn btn-orange w-100 mt-3 shadow">📈 แสดงผล</button>
+                <button onclick="processDashboard()" class="btn btn-orange w-100 mt-3 shadow">📊 ประมวลผล</button>
             </div>
             <div class="glass-card" style="height: 380px;"><canvas id="perfChart"></canvas></div>
             <div class="glass-card px-0 overflow-hidden shadow-sm">
                 <div class="table-responsive">
-                    <table class="table table-hover table-custom text-center mb-0">
-                        <thead style="background: #fff3e0; color: #e65100;">
-                            <tr><th>เวลา</th><th>เป้า</th><th>จริง</th><th>Balance</th><th>Call</th><th>IR</th><th>CP</th><th>GNS</th><th>SR</th></tr>
+                    <table class="table table-hover text-center mb-0">
+                        <thead class="table-custom">
+                            <tr><th>เวลา</th><th>เป้า</th><th>จริง</th><th>+/-</th><th>Call</th><th>IR</th><th>CP</th><th>Drop</th><th>SR</th></tr>
                         </thead>
                         <tbody id="dashTableBody"></tbody>
                     </table>
@@ -110,14 +107,14 @@
 
         <div id="tab-assign" class="tab-content hidden">
             <div class="glass-card">
-                <h5 class="fw-bold mb-3">จัดการเป้าหมาย</h5>
+                <h5 class="fw-bold mb-3">เป้าหมายรายวัน</h5>
                 <div class="row g-2 mb-4">
                     <div class="col-md-5"><input type="date" id="planDate" class="form-control"></div>
                     <div class="col-md-4"><select id="planType" class="form-select"><option value="72">เต็มวัน (72)</option><option value="36">ครึ่งวัน (36)</option></select></div>
                     <div class="col-md-3"><button onclick="savePlan('save')" class="btn btn-orange w-100 shadow-sm">บันทึก</button></div>
                 </div>
                 <table class="table text-center table-sm">
-                    <thead><tr><th>วันที่</th><th>Target</th><th>จัดการ</th></tr></thead>
+                    <thead><tr><th>วันที่</th><th>Target</th><th>ลบ</th></tr></thead>
                     <tbody id="planTableBody"></tbody>
                 </table>
             </div>
@@ -139,14 +136,14 @@
     async function login() {
         const u = document.getElementById('user').value.trim(), p = document.getElementById('pass').value.trim();
         if(!u || !p) return;
-        Swal.fire({title:'Loading...', allowOutsideClick: false, didOpen:()=>Swal.showLoading()});
+        Swal.fire({title:'Logging in...', allowOutsideClick: false, didOpen:()=>Swal.showLoading()});
         const res = await (await fetch(`${SCRIPT_URL}?action=login&user=${encodeURIComponent(u)}&pass=${encodeURIComponent(p)}`)).json();
         if (res.status === "success") {
             currentUser = res.name; document.getElementById('empName').innerText = res.name;
             document.getElementById('loginSection').classList.add('hidden');
             document.getElementById('mainSection').classList.remove('hidden');
             await refreshView(); Swal.close();
-        } else { Swal.fire('Error', 'ไม่ถูกต้อง', 'error'); }
+        } else { Swal.fire('Error', 'ลองใหม่อีกครั้ง', 'error'); }
     }
 
     async function refreshView() {
@@ -165,16 +162,19 @@
 
         document.getElementById('displayTarget').innerText = target;
         document.getElementById('displayActual').innerText = actual;
-        
-        // จัดการการแสดงผล Balance
         const balEl = document.getElementById('displayBalance');
         balEl.innerText = (balance > 0 ? "+" : "") + balance;
         balEl.className = "h5 fw-bold " + (balance >= 0 ? "text-success" : "text-danger");
         document.getElementById('balanceBox').style.borderLeftColor = balance >= 0 ? "var(--green)" : "var(--red)";
 
         document.getElementById('displayDateText').innerText = '📅 ' + now.toLocaleDateString('th-TH', {day:'numeric', month:'long', year:'numeric'});
-        const cats = { "CP": "CP No.", "Call": "Call IN", "IR": "IR", "GNS": "GNS", "SR": "SR", "Campaign": "Campaign" };
-        for (let id in cats) document.getElementById(`count-${id}`).innerText = todayData.filter(d => d[2] === cats[id]).length;
+        
+        // แมปปิ้งข้อมูล Category
+        const cats = { "CP": "CP No.", "Call": "Call IN", "IR": "IR", "DropCall": "Drop Call", "SR": "SR", "Campaign": "Campaign" };
+        for (let id in cats) {
+            const el = document.getElementById(`count-${id}`);
+            if(el) el.innerText = todayData.filter(d => d[2] === cats[id]).length;
+        }
         
         let h = ""; userPlans.sort((a,b)=>new Date(b[0])-new Date(a[0])).slice(0,5).forEach(p => {
             h += `<tr><td>${new Date(p[0]).toLocaleDateString('th-TH')}</td><td>${p[3]}</td><td><button class="btn btn-sm text-danger" onclick="savePlan('delete','${p[0].split('T')[0]}')">ลบ</button></td></tr>`;
@@ -192,7 +192,6 @@
         await refreshView(); Swal.close();
     }
 
-    // ฟังก์ชัน Dashboard
     function showTab(t) {
         document.querySelectorAll('.tab-content').forEach(el => el.classList.add('hidden'));
         document.getElementById('tab-' + t).classList.remove('hidden');
@@ -200,35 +199,41 @@
         document.getElementById('nav-' + (t==='record'?'rec':t)).classList.add('active-btn');
         if(t === 'dash') initDashboard();
     }
+
     function initDashboard() {
         const years = [...new Set(allPlans.filter(p => p[1] === currentUser).map(p => new Date(p[0]).getFullYear()))].sort((a,b)=>b-a);
         document.getElementById('selYear').innerHTML = years.map(y => `<option value="${y}">${y}</option>`).join('');
         toggleFilters();
     }
+    
     function toggleFilters() {
         const t = document.getElementById('viewType').value;
         document.getElementById('divMonth').classList.toggle('hidden', t === 'yearly');
         document.getElementById('divDay').classList.toggle('hidden', t !== 'daily');
         updateSubFilters();
     }
+    
     function updateSubFilters() {
         const t = document.getElementById('viewType').value, selM = document.getElementById('selMonth');
         const ms = ["ม.ค.","ก.พ.","มี.ค.","เม.ย.","พ.ค.","มิ.ย.","ก.ค.","ส.ค.","ก.ย.","ต.ค.","พ.ย.","ธ.ค."];
         if (t === 'daily' || t === 'monthly') selM.innerHTML = ms.map((m, i) => `<option value="${i+1}">${m}</option>`).join('');
         else if (t === 'quarterly') selM.innerHTML = `<option value="1">Q1</option><option value="2">Q2</option><option value="3">Q3</option><option value="4">Q4</option>`;
     }
+
     function updateDayFilter() {
         const ys = Array.from(document.getElementById('selYear').selectedOptions).map(o => o.value);
         const ms = Array.from(document.getElementById('selMonth').selectedOptions).map(o => o.value);
         let ds = allPlans.filter(p => p[1] === currentUser && ys.includes(new Date(p[0]).getFullYear().toString()) && ms.includes((new Date(p[0]).getMonth()+1).toString())).map(p => p[0].split('T')[0]);
         document.getElementById('selDay').innerHTML = [...new Set(ds)].sort().map(d => `<option value="${d}">${new Date(d).getDate()}/${new Date(d).getMonth()+1}</option>`).join('');
     }
+
     function processDashboard() {
         const type = document.getElementById('viewType').value;
         const sY = Array.from(document.getElementById('selYear').selectedOptions).map(o => o.value);
         const sM = Array.from(document.getElementById('selMonth').selectedOptions).map(o => o.value);
         const sD = Array.from(document.getElementById('selDay').selectedOptions).map(o => o.value);
         let groups = {};
+
         allPlans.filter(p => p[1] === currentUser).forEach(p => {
             const d = new Date(p[0]), y = d.getFullYear().toString(), m = (d.getMonth()+1).toString(), q = Math.ceil(m/3).toString(), f = p[0].split('T')[0];
             let k = "";
@@ -238,6 +243,7 @@
             else if(type === 'daily' && sD.includes(f)) k = f;
             if(k) { if(!groups[k]) groups[k] = { t: 0, a: 0, c: {} }; groups[k].t += parseInt(p[3]); }
         });
+
         allData.filter(d => d[1] === currentUser).forEach(d => {
             const date = new Date(d[0]), y = date.getFullYear().toString(), m = (date.getMonth()+1).toString(), q = Math.ceil(m/3).toString(), f = d[0].split('T')[0], cat = d[2];
             let k = "";
@@ -247,6 +253,7 @@
             else if(type === 'daily' && sD.includes(f)) k = f;
             if(k && groups[k]) { groups[k].a++; groups[k].c[cat] = (groups[k].c[cat] || 0) + 1; }
         });
+
         const labs = Object.keys(groups);
         if (chartInstance) chartInstance.destroy();
         chartInstance = new Chart(document.getElementById('perfChart'), {
@@ -254,15 +261,16 @@
             data: { labels: labs, datasets: [{ label: 'เป้าหมาย', data: labs.map(l => groups[l].t), backgroundColor: '#ffcc80', borderRadius: 5 }, { label: 'ทำจริง', data: labs.map(l => groups[l].a), backgroundColor: '#ff7043', borderRadius: 5 }] },
             options: { responsive: true, maintainAspectRatio: false, plugins: { datalabels: { anchor: 'end', align: 'top', color: '#5d4037', font: { weight: 'bold' } } } }
         });
+
         let h = ""; labs.forEach(l => {
             const bal = groups[l].a - groups[l].t;
-            const balClass = bal >= 0 ? "text-success" : "text-danger";
-            h += `<tr><td>${l}</td><td>${groups[l].t}</td><td class="fw-bold text-orange">${groups[l].a}</td><td class="${balClass} fw-bold">${(bal>0?"+":"")+bal}</td><td>${groups[l].c['Call IN']||0}</td><td>${groups[l].c['IR']||0}</td><td>${groups[l].c['CP No.']||0}</td><td>${groups[l].c['GNS']||0}</td><td>${groups[l].c['SR']||0}</td></tr>`;
+            h += `<tr><td>${l}</td><td>${groups[l].t}</td><td class="fw-bold text-orange">${groups[l].a}</td><td class="${bal>=0?'text-success':'text-danger'} fw-bold">${(bal>0?"+":"")+bal}</td><td>${groups[l].c['Call IN']||0}</td><td>${groups[l].c['IR']||0}</td><td>${groups[l].c['CP No.']||0}</td><td>${groups[l].c['Drop Call']||0}</td><td>${groups[l].c['SR']||0}</td></tr>`;
         });
         document.getElementById('dashTableBody').innerHTML = h;
     }
+
     async function savePlan(a, d) { Swal.showLoading(); await fetch(SCRIPT_URL, {method:'POST', body: JSON.stringify({action:'savePlan', subAction: a, date: d || document.getElementById('planDate').value, employee: currentUser, target: document.getElementById('planType').value, workType:'Plan'})}); await refreshView(); Swal.close(); }
-    async function manualRefresh() { Swal.fire({title:'Syncing...', didOpen:()=>Swal.showLoading(), timer: 1000}); await refreshView(); }
+    async function manualRefresh() { Swal.fire({title:'กำลังอัปเดต...', didOpen:()=>Swal.showLoading(), timer: 1000}); await refreshView(); }
 </script>
 </body>
 </html>
