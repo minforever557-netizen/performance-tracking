@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Performance V75 - Final Master</title>
+    <title>Performance V.92 - Hybrid Edition (Customized)</title>
     <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
     <link href="https://fonts.googleapis.com/css2?family=Prompt:wght@300;400;600&display=swap" rel="stylesheet">
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css">
@@ -15,167 +15,249 @@
             --glass-bg: rgba(255, 255, 255, 0.95);
             --deep-orange: #e65100;
             --bright-orange: #ff8c00;
-            --text-main: #2d3436;
             --bg-liquid: linear-gradient(135deg, #fff5e6 0%, #ffffff 100%);
         }
-
-        body.dark-mode { 
-            --glass-bg: rgba(40, 40, 40, 0.98); 
-            --bg-liquid: linear-gradient(to top, #0f0f0f 0%, #1a1a1a 100%); 
-            --text-main: #ffffff;
+        body { font-family: 'Prompt', sans-serif; background: var(--bg-liquid); min-height: 100vh; color: #2d3436; margin: 0; }
+        .glass-card { background: var(--glass-bg); backdrop-filter: blur(15px); border-radius: 20px; border: 1px solid rgba(255,255,255,0.4); box-shadow: 0 4px 15px rgba(0,0,0,0.05); padding: 20px; margin-bottom: 15px; }
+        
+        .nav-btn { border: none; background: none; color: #636e72; font-weight: 600; padding: 10px; transition: 0.3s; flex: 1; font-size: 0.85rem; }
+        .nav-btn.active-btn { background: var(--bright-orange); color: white; border-radius: 12px; box-shadow: 0 4px 10px rgba(255,140,0,0.3); }
+        
+        .count-circle {
+            background: linear-gradient(135deg, #ff9100, #ffea00);
+            color: white; width: 26px; height: 26px; border-radius: 50%;
+            display: inline-flex; align-items: center; justify-content: center;
+            font-size: 0.75rem; font-weight: bold; margin-right: 4px; 
+            box-shadow: 0 2px 4px rgba(255,140,0,0.3);
         }
 
-        body { font-family: 'Prompt', sans-serif; background: var(--bg-liquid); min-height: 100vh; color: var(--text-main); transition: 0.3s; }
-
-        .glass-card { 
-            background: var(--glass-bg); backdrop-filter: blur(15px);
-            border-radius: 20px; border: 1px solid rgba(255,255,255,0.4);
-            box-shadow: 0 4px 15px rgba(0,0,0,0.05); padding: 15px; margin-bottom: 12px;
+/* Filter UI - ปรับให้เรียง 5 ช่อง สูงเท่ากันและพอดีหน้าจอ */
+        .filter-row { 
+            display: grid; 
+            grid-template-columns: repeat(5, 1fr); 
+            gap: 10px; 
+            padding-bottom: 15px; 
+            /* ปรับจาก end เป็น stretch เพื่อให้ทุกกล่องสูงเท่ากัน */
+            align-items: stretch; 
+            width: 100%;
         }
 
-        /* 🍊 Progress Bar System */
+        .filter-box { 
+            background: white; 
+            border: 1px solid #ddd; 
+            border-radius: 10px; 
+            padding: 8px 10px;
+            min-width: 0; 
+            display: flex;
+            flex-direction: column;
+        }
+
+        /* ปรับให้ตัวเลือก (Select) ภายในสูงเท่ากันและพอดีกล่อง */
+        .filter-box select {
+            width: 100%;
+            border: 1px solid #ccc;
+            border-radius: 5px;
+            padding: 4px;
+            margin-top: 5px;
+            /* ทำให้ Select ขยายเต็มพื้นที่ความสูงที่เหลือในกล่อง */
+            flex-grow: 1; 
+        }
+
+        /* กำหนดความสูงคงที่สำหรับพวก Multi-select (เดือน/วัน) เพื่อให้แถวดูเป็นระเบียบ */
+        .filter-box select[multiple] {
+            min-height: 60px; 
+        }
+
+        .filter-label {
+            font-weight: bold;
+            font-size: 0.9rem;
+            color: #555;
+        }
+
+        .loader-spinner { width: 40px; height: 40px; border: 4px solid #f3f3f3; border-top: 4px solid var(--bright-orange); border-radius: 50%; animation: spin 1s linear infinite; margin: 20px auto; }
+        @keyframes spin { 0% { transform: rotate(0deg); } 100% { transform: rotate(360deg); } }
+
         .progress-wrapper { background: rgba(0,0,0,0.05); height: 26px; border-radius: 13px; overflow: hidden; position: relative; }
-        .progress-bar-fill {
-            height: 100%; width: 0%; 
-            background: linear-gradient(90deg, #ff8c00, #ffb347, #ff8c00);
-            background-size: 200% 100%; animation: shimmer 2s infinite linear;
-            transition: width 1s ease; display: flex; align-items: center; justify-content: center;
-            color: white; font-weight: bold; font-size: 0.85rem;
-        }
-        @keyframes shimmer { 0% { background-position: 200% 0; } 100% { background-position: -200% 0; } }
-
-        /* 📊 Dashboard Filters */
-        .filter-row { display: flex; gap: 8px; flex-wrap: wrap; margin-bottom: 15px; }
-        .filter-box { background: white; border: 1px solid #ddd; border-radius: 10px; padding: 5px; flex: 1; min-width: 100px; }
-        .filter-label { font-size: 0.65rem; font-weight: 600; color: #888; margin-left: 5px; }
-        .filter-box select { border: none; width: 100%; font-size: 0.8rem; font-weight: 600; outline: none; background: transparent; }
-
-        /* Status Colors */
-        .status-red { color: #d32f2f !important; }
-        .status-yellow { color: #fbc02d !important; }
-        .status-green { color: #388e3c !important; }
+        .progress-bar-fill { height: 100%; width: 0%; background: linear-gradient(90deg, #ff8c00, #ffb347, #ff8c00); transition: width 1s ease; display: flex; align-items: center; justify-content: center; color: white; font-weight: bold; font-size: 0.8rem; }
         
-        #bigClock { color: var(--deep-orange); font-size: 2.2rem; font-weight: 700; }
-        #displayDateText { color: var(--deep-orange); font-weight: 600; }
+        .cp-table-render { width: 100%; border-collapse: separate; border-spacing: 0; font-size: 0.85rem; background: white; border-radius: 15px; overflow: hidden; border: 1px solid #eee; }
+        .cp-table-render td { padding: 10px 15px; border-bottom: 1px solid #f0f0f0; }
+        .cp-label-custom { background-color: #fff8e1; font-weight: 600; color: var(--deep-orange); width: 40%; border-right: 1px solid #f0f0f0; }
+        .cp-value-custom { background-color: #ffffff; color: #333; }
+        .cp-section-title { background: linear-gradient(90deg, var(--bright-orange), var(--deep-orange)); color: white; font-weight: bold; padding: 8px 15px; font-size: 0.9rem; }
 
-        .nav-btn.active-btn { background: var(--bright-orange); color: white; border-radius: 12px; }
         .hidden-completely { display: none !important; }
-        .loader-overlay { position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: rgba(255,255,255,0.9); z-index: 10000; display: flex; flex-direction: column; align-items: center; justify-content: center; }
+        .cat-input { text-align: center; font-weight: bold; border-radius: 8px !important; }
+        #historyContent { transition: all 0.3s ease; }
+        .btn-toggle-history { font-size: 0.8rem; border-radius: 10px; }
         
-        .sync-label { font-size: 0.65rem; font-weight: bold; color: #666; margin-top: 4px; }
+        /* Table Summary scroll */
+        .table-dash-wrapper { max-height: 400px; overflow-y: auto; border-radius: 10px; border: 1px solid #eee; }
+        .table-dash-sticky thead th { position: sticky; top: 0; background: #f8f9fa; z-index: 5; }
     </style>
 </head>
 <body>
 
 <div id="loginSection" style="position:fixed; width:100%; height:100%; z-index:9999; background:var(--bg-liquid); display:flex; align-items:center; justify-content:center;">
-    <div id="loadingOverlay" class="loader-overlay hidden-completely">
-        <div class="spinner-border text-warning mb-3"></div>
-        <h5 class="fw-bold">กำลังซิงค์ข้อมูล...</h5>
-    </div>
     <div class="glass-card text-center" style="width:90%; max-width:350px;">
         <h3 class="fw-bold mb-4" style="color:var(--deep-orange)">🍊 Performance</h3>
-        <input type="text" id="user" class="form-control rounded-pill mb-3" placeholder="Username">
-        <input type="password" id="pass" class="form-control rounded-pill mb-4" placeholder="Password">
-        <button onclick="login()" class="btn btn-warning w-100 fw-bold text-white rounded-pill py-2 shadow">LOGIN</button>
+        <div id="loginInputs">
+            <input type="text" id="user" class="form-control rounded-pill mb-3" placeholder="Username">
+            <input type="password" id="pass" class="form-control rounded-pill mb-4" placeholder="Password">
+            <button onclick="login()" class="btn btn-warning w-100 fw-bold text-white rounded-pill py-2 shadow">LOGIN</button>
+        </div>
+        <div id="loginStatus" class="hidden-completely">
+            <div class="loader-spinner"></div>
+            <p class="mb-1 fw-bold text-secondary">กำลังเข้าสู่ระบบ...</p>
+            <p id="targetUserDisplay" class="text-warning small"></p>
+        </div>
     </div>
 </div>
 
 <div id="mainSection" class="hidden-completely">
     <nav class="navbar mb-2 p-2 glass-card mx-2 mt-2">
         <div class="container d-flex justify-content-between p-0 align-items-center">
-            <span class="fw-bold text-orange">🍊 V.75 MASTER</span>
-            <div class="d-flex align-items-center gap-3">
-                <i class="fa-solid fa-circle-half-stroke" onclick="toggleDarkMode()" style="cursor:pointer"></i>
-                <div class="text-end small"><b><span id="empName"></span></b> | <a href="#" onclick="logout()" class="text-danger">ออก</a></div>
-            </div>
+            <span class="fw-bold" style="color:var(--bright-orange)">🍊 PERFORMANCE V.92</span>
+            <div class="text-end small"><b><span id="empName"></span></b> | <a href="#" onclick="logout()" class="text-danger">ออก</a></div>
         </div>
     </nav>
 
     <div class="container pb-5">
-        <div class="d-flex gap-1 mb-3 p-1 glass-card" style="border-radius: 15px;">
-            <button id="nav-record" class="btn nav-btn active-btn flex-fill" onclick="showTab('record')">บันทึก</button>
-            <button id="nav-dash" class="btn nav-btn flex-fill" onclick="showTab('dash')">สรุป</button>
-            <button id="nav-assign" class="btn nav-btn flex-fill" onclick="showTab('assign')">แผนงาน</button>
+        <div class="d-flex gap-1 mb-3 p-1 glass-card" style="border-radius: 15px; overflow-x: auto;">
+            <button id="nav-record" class="btn nav-btn active-btn" onclick="showTab('record')">บันทึก</button>
+            <button id="nav-cp" class="btn nav-btn" onclick="showTab('cp')">รายละเอียด CP</button>
+            <button id="nav-dash" class="btn nav-btn" onclick="showTab('dash')">สรุป</button>
+            <button id="nav-assign" class="btn nav-btn" onclick="showTab('assign')">แผนงาน</button>
         </div>
 
         <div id="tab-record" class="tab-content">
-            <div class="glass-card text-center">
-                <div class="d-flex justify-content-between align-items-center mb-2">
-                    <div id="displayDateText">📅 -</div>
+            <div class="glass-card text-center mb-3">
+                <div class="d-flex justify-content-between align-items-start mb-2">
+                    <div class="text-start">
+                        <div class="small fw-bold text-secondary" id="todayDateLabel"></div>
+                        <div id="bigClock" style="font-size: 1.8rem; font-weight:700; color:var(--deep-orange); line-height: 1;">00:00:00</div>
+                    </div>
                     <div class="text-end">
-                        <button class="btn btn-sm btn-light border rounded-pill px-3 shadow-sm" onclick="manualRefresh()">Sync</button>
-                        <div class="sync-label">ล่าสุด: <span class="lastSyncTime">00:00:00</span></div>
+                        <button class="btn btn-sm btn-outline-warning rounded-pill px-3" onclick="initData()"><i class="fa-solid fa-sync"></i> Sync</button>
+                        <div class="small text-muted mt-1" id="lastSyncTime" style="font-size: 0.7rem;"></div>
                     </div>
                 </div>
-                <div id="bigClock">00:00:00</div>
-                <div class="progress-wrapper my-3"><div id="goalProgress" class="progress-bar-fill">0%</div></div>
-                <div class="row g-2 mb-2">
-                    <div class="col-4"><div class="stat-item p-1 border rounded-3 bg-white">Target<br><b id="displayTarget">0</b></div></div>
-                    <div class="col-4"><div class="stat-item p-1 border rounded-3 bg-white">Actual<br><b id="displayActual" class="text-primary">0</b></div></div>
-                    <div class="col-4"><div class="stat-item p-1 border rounded-3 bg-white">Balance<br><b id="displayBalance">0</b></div></div>
+                <div class="mb-3">
+                    <span class="badge rounded-pill bg-success p-2 px-3"><i class="fa-solid fa-check-circle me-1"></i> Auto Sync: On</span>
                 </div>
-                <button class="btn btn-sm btn-outline-warning w-100 rounded-pill" onclick="toggleHistory()">ดูประวัติเคสวันนี้</button>
-                <div id="historyPanel" class="hidden-completely mt-2 glass-card p-1 text-start" style="max-height: 150px; overflow-y: auto;">
-                    <table class="table table-sm mb-0" style="font-size: 0.7rem;"><tbody id="historyTableBody"></tbody></table>
+                <div class="progress-wrapper mb-3"><div id="goalProgress" class="progress-bar-fill">0%</div></div>
+                <div class="row g-2 mb-4">
+                    <div class="col-4 small">Target<br><b id="displayTarget">0</b></div>
+                    <div class="col-4 small text-primary">Actual<br><b id="displayActual">0</b></div>
+                    <div class="col-4 small">Balance<br><b id="displayBalance">0</b></div>
+                </div>
+                <div class="row g-2">
+                    <div class="col-4 small mb-2"><span class="count-circle" id="badge-CP">0</span> CP<input type="text" class="form-control form-control-sm cat-input mt-1" data-cat="CP No." placeholder="ID"></div>
+                    <div class="col-4 small mb-2"><span class="count-circle" id="badge-Call">0</span> Call<input type="text" class="form-control form-control-sm cat-input mt-1" data-cat="Call IN" placeholder="ID"></div>
+                    <div class="col-4 small mb-2"><span class="count-circle" id="badge-IR">0</span> IR<input type="text" class="form-control form-control-sm cat-input mt-1" data-cat="IR" placeholder="ID"></div>
+                    <div class="col-4 small mb-2"><span class="count-circle" id="badge-SR">0</span> SR<input type="text" class="form-control form-control-sm cat-input mt-1" data-cat="SR" placeholder="ID"></div>
+                    <div class="col-4 small mb-2"><span class="count-circle" id="badge-Drop">0</span> Drop<input type="text" class="form-control form-control-sm cat-input mt-1" data-cat="Drop Call" placeholder="ID"></div>
+                    <div class="col-4 small mb-2"><span class="count-circle" id="badge-Camp">0</span> Camp<input type="text" class="form-control form-control-sm cat-input mt-1" data-cat="Campaign" placeholder="ID"></div>
+                </div>
+                <button onclick="saveWork()" class="btn btn-warning w-100 text-white fw-bold py-3 mt-3 rounded-pill shadow">🚀 บันทึกข้อมูล</button>
+            </div>
+            <div class="glass-card">
+                <div class="d-flex justify-content-between align-items-center mb-2">
+                    <h6 class="fw-bold m-0 small"><i class="fa-solid fa-history"></i> ประวัติวันนี้</h6>
+                    <button id="btnToggleHistory" class="btn btn-sm btn-outline-secondary btn-toggle-history" onclick="toggleHistoryVisibility()">
+                        <i class="fa-solid fa-eye"></i> แสดงประวัติ
+                    </button>
+                </div>
+                <div id="historyContent" class="hidden-completely">
+                    <div class="table-responsive">
+                        <table class="table table-sm" style="font-size: 0.75rem;">
+                            <thead><tr class="text-secondary"><th>เวลา</th><th>Case ID</th><th>หัวข้อ</th></tr></thead>
+                            <tbody id="historyBody"></tbody>
+                        </table>
+                    </div>
                 </div>
             </div>
+        </div>
 
-            <div class="row g-2 mt-2">
-                <div class="col-4"><div class="glass-card p-2 text-center small"><div class="fw-bold mb-1">CP</div><input type="text" class="form-control form-control-sm cat-input" data-cat="CP No." placeholder="ระบุ Case ID"></div></div>
-                <div class="col-4"><div class="glass-card p-2 text-center small"><div class="fw-bold mb-1">Call</div><input type="text" class="form-control form-control-sm cat-input" data-cat="Call IN" placeholder="ระบุ Case ID"></div></div>
-                <div class="col-4"><div class="glass-card p-2 text-center small"><div class="fw-bold mb-1">IR</div><input type="text" class="form-control form-control-sm cat-input" data-cat="IR" placeholder="ระบุ Case ID"></div></div>
-                <div class="col-4"><div class="glass-card p-2 text-center small"><div class="fw-bold mb-1">SR</div><input type="text" class="form-control form-control-sm cat-input" data-cat="SR" placeholder="ระบุ Case ID"></div></div>
-                <div class="col-4"><div class="glass-card p-2 text-center small"><div class="fw-bold mb-1">Drop</div><input type="text" class="form-control form-control-sm cat-input" data-cat="Drop Call" placeholder="ระบุ Case ID"></div></div>
-                <div class="col-4"><div class="glass-card p-2 text-center small"><div class="fw-bold mb-1">Camp</div><input type="text" class="form-control form-control-sm cat-input" data-cat="Campaign" placeholder="ระบุ Case ID"></div></div>
+        <div id="tab-cp" class="tab-content hidden-completely">
+            <div class="glass-card">
+                <h5 class="fw-bold mb-3" style="color:var(--deep-orange)"><i class="fa-solid fa-file-lines me-2"></i>Smart CP Splitter</h5>
+                <div class="mb-4">
+                    <label class="form-label small fw-bold text-secondary">วางข้อมูลดิบจากระบบที่นี่:</label>
+                    <textarea id="cpRawInput" class="form-control shadow-sm" rows="3" placeholder="Paste raw data here..." style="border-radius: 12px; font-size: 0.85rem;" oninput="parseCPData()"></textarea>
+                </div>
+                <div class="table-responsive shadow-sm" style="border-radius: 15px;">
+                    <table class="cp-table-render" id="cpTable">
+                        <thead><tr><th colspan="2" class="cp-section-title"><i class="fa-solid fa-info-circle me-2"></i> ข้อมูลสรุปรายละเอียด</th></tr></thead>
+                        <tbody>
+                            <tr><td class="cp-label-custom">IMSI :</td><td id="td-imsi" class="cp-value-custom" contenteditable="true"></td></tr>
+                            <tr><td class="cp-label-custom">4GCell Name:</td><td id="td-4gcell" class="cp-value-custom" contenteditable="true"></td></tr>
+                            <tr><td class="cp-label-custom">4G Signal Strength :</td><td id="td-4grsrp" class="cp-value-custom" contenteditable="true"></td></tr>
+                            <tr><td class="cp-label-custom">4GSignal Quality :</td><td id="td-4grsrq" class="cp-value-custom" contenteditable="true"></td></tr>
+                            <tr><td class="cp-label-custom">5GCell Name:</td><td id="td-5gcell" class="cp-value-custom" contenteditable="true"></td></tr>
+                            <tr><td class="cp-label-custom">5G Signal Strength :</td><td id="td-5grsrp" class="cp-value-custom" contenteditable="true"></td></tr>
+                            <tr><td class="cp-label-custom">5GSignal Quality :</td><td id="td-5gsinr" class="cp-value-custom" contenteditable="true"></td></tr>
+                            <tr><td class="cp-label-custom">Address :</td><td id="td-address" class="cp-value-custom" contenteditable="true"></td></tr>
+                            <tr><td class="cp-label-custom">Service Year :</td><td id="td-lat" class="cp-value-custom" contenteditable="true"></td></tr>
+                            <tr><td class="cp-label-custom">Arpu :</td><td id="td-long" class="cp-value-custom" contenteditable="true"></td></tr>
+                            <tr><td class="cp-label-custom">Remark :</td><td id="td-msisdn" class="cp-value-custom" contenteditable="true"></td></tr>
+                            <tr><td class="cp-label-custom">Package Remaining :</td><td id="td-remaining" class="cp-value-custom" contenteditable="true"></td></tr>
+                            <tr><td class="cp-label-custom">Package :</td><td colspan="1" id="td-package" class="cp-value-custom" contenteditable="true" style="min-height: 60px; font-size: 0.8rem; line-height: 1.5;"></td></tr>
+                        </tbody>
+                    </table>
+                </div>
+                <div class="row g-2 mt-4">
+                    <div class="col-4"><button class="btn btn-light w-100 rounded-pill border fw-bold text-secondary" onclick="clearCP()">ล้าง</button></div>
+                    <div class="col-8"><button class="btn btn-warning w-100 rounded-pill text-white fw-bold shadow" onclick="copyCPTable()"><i class="fa-regular fa-copy me-2"></i>คัดลอกข้อมูลทั้งหมด</button></div>
+                </div>
             </div>
-            <button onclick="saveWork()" class="btn btn-warning w-100 text-white fw-bold py-3 mt-3 rounded-pill shadow">🚀 บันทึกข้อมูล</button>
         </div>
 
         <div id="tab-dash" class="tab-content hidden-completely">
             <div class="glass-card">
                 <div class="d-flex justify-content-between align-items-center mb-3">
-                    <h6 class="fw-bold m-0"><i class="fa-solid fa-chart-column"></i> สรุปผลงาน</h6>
-                    <div class="text-end">
-                        <button class="btn btn-xs btn-outline-warning rounded-pill px-2" onclick="manualRefresh()" style="font-size: 0.7rem;">Sync ข้อมูล</button>
-                        <div class="sync-label" style="font-size: 0.55rem;">อัปเดต: <span class="lastSyncTime">00:00:00</span></div>
+                    <h6 class="fw-bold m-0"><i class="fa-solid fa-chart-pie me-2"></i>Performance Dashboard</h6>
+                    <div class="btn-group btn-group-sm">
+                        <button class="btn btn-outline-warning active" id="btn-bar" onclick="changeChartType('bar')">Bar</button>
+                        <button class="btn btn-outline-warning" id="btn-line" onclick="changeChartType('line')">Line</button>
                     </div>
-                </div>
-
-                <div class="filter-row">
-                    <div class="filter-box"><div class="filter-label">มุมมอง</div><select id="viewType" onchange="updateDashFilterLogic()"><option value="daily">รายวัน</option><option value="monthly">รายเดือน</option><option value="quarterly">รายไตรมาส</option><option value="yearly">รายปี</option></select></div>
-                    <div class="filter-box" id="boxYear"><div class="filter-label">ปี</div><select id="selYear" multiple onchange="updateMonthList()"></select></div>
-                    <div class="filter-box hidden-completely" id="boxQuarter"><div class="filter-label">ไตรมาส</div><select id="selQuarter" multiple onchange="processDashboard()"><option value="1">Q1</option><option value="2">Q2</option><option value="3">Q3</option><option value="4">Q4</option></select></div>
-                    <div class="filter-box" id="boxMonth"><div class="filter-label">เดือน</div><select id="selMonth" multiple onchange="updateDayList()"></select></div>
-                    <div class="filter-box" id="boxDay"><div class="filter-label">วันที่</div><select id="selDay" multiple onchange="processDashboard()"></select></div>
                 </div>
                 
-                <div class="d-flex justify-content-between mb-2">
-                    <div class="btn-group btn-group-sm rounded-pill border overflow-hidden">
-                        <button id="btn-bar" class="btn btn-light px-3 active" onclick="changeChartType('bar')">Bar</button>
-                        <button id="btn-line" class="btn btn-light px-3" onclick="changeChartType('line')">Line</button>
-                    </div>
-                </div>
+                <div class="filter-row mb-3">
+    <div class="filter-box"><div class="filter-label">มุมมอง</div><select id="viewType" onchange="updateDashFilters()"><option value="daily">รายวัน</option><option value="monthly">รายเดือน</option><option value="quarterly">ไตรมาส</option><option value="yearly">รายปี</option></select></div>
+    <div class="filter-box"><div class="filter-label">ปี</div><select id="selYear" onchange="processDashboard()"></select></div>
+    <div class="filter-box" id="monthBox"><div class="filter-label" id="lblSub">เดือน</div><select id="selSub" multiple onchange="processDashboard()"></select></div>
+    <div class="filter-box" id="dayBox"><div class="filter-label">วัน</div><select id="selDay" multiple onchange="processDashboard()"></select></div>
+    <div class="filter-box"><div class="filter-label">Status</div><select disabled><option>All Data</option></select></div>
+</div>
+
                 <div style="height: 250px;"><canvas id="perfChart"></canvas></div>
-                <div class="table-responsive mt-3"><table class="table table-sm text-center small" style="font-size: 0.75rem;"><thead class="table-light"><tr><th>ช่วงเวลา</th><th>CP</th><th>Call</th><th>Actual</th><th>Target</th></tr></thead><tbody id="dashTableBody"></tbody></table></div>
+                
+                <div class="table-dash-wrapper mt-3">
+                    <table class="table table-sm text-center small table-dash-sticky" style="font-size: 0.65rem;">
+                        <thead class="table-light">
+                            <tr><th>วันที่</th><th>CP</th><th>Call</th><th>IR</th><th>SR</th><th>Drop</th><th>Camp</th><th class="table-primary">Actual</th><th>Target</th><th>%</th></tr>
+                        </thead>
+                        <tbody id="dashTableBody"></tbody>
+                    </table>
+                </div>
             </div>
         </div>
 
         <div id="tab-assign" class="tab-content hidden-completely">
             <div class="glass-card">
-                <h6 class="fw-bold mb-3">จัดการแผนงาน</h6>
-                <div class="row g-2 mb-3 border-bottom pb-3">
-                    <div class="col-5"><input type="date" id="planDate" class="form-control form-control-sm"></div>
-                    <div class="col-3"><select id="planType" class="form-select form-select-sm"><option value="72">72</option><option value="36">36</option></select></div>
-                    <div class="col-4"><button onclick="savePlan('save')" class="btn btn-warning btn-sm w-100 text-white">เพิ่ม</button></div>
+                <h6 class="fw-bold mb-3">📅 จัดการแผนงาน</h6>
+                <div class="row g-2 mb-3">
+                    <div class="col-6"><input type="date" id="planDate" class="form-control form-control-sm"></div>
+                    <div class="col-3"><select id="planVal" class="form-select form-select-sm"><option value="72">72</option><option value="36">36</option></select></div>
+                    <div class="col-3"><button onclick="savePlan()" class="btn btn-warning btn-sm w-100 text-white">เพิ่ม</button></div>
                 </div>
-                <select id="assignMonthFilter" class="form-select form-select-sm rounded-pill mb-3" onchange="renderPlanTable()">
-                    <option value="all">แสดงทั้งหมด</option>
-                    <option value="1">มกราคม</option><option value="2">กุมภาพันธ์</option><option value="3">มีนาคม</option>
-                    <option value="4">เมษายน</option><option value="5">พฤษภาคม</option><option value="6">มิถุนายน</option>
-                    <option value="7">กรกฎาคม</option><option value="8">สิงหาคม</option><option value="9">กันยายน</option>
-                    <option value="10">ตุลาคม</option><option value="11">พฤศจิกายน</option><option value="12">ธันวาคม</option>
-                </select>
-                <div class="table-responsive"><table class="table table-sm text-center small"><thead class="table-light"><tr><th>วันที่</th><th>Target</th><th>ลบ</th></tr></thead><tbody id="planTableBody"></tbody></table></div>
+                <div class="table-responsive">
+                    <table class="table table-sm text-center small">
+                        <thead class="table-light"><tr><th>วันที่</th><th>Target</th><th>ลบ</th></tr></thead>
+                        <tbody id="planTableBody"></tbody>
+                    </table>
+                </div>
             </div>
         </div>
     </div>
@@ -183,182 +265,414 @@
 
 <script>
     const SCRIPT_URL = 'https://script.google.com/macros/s/AKfycbwQwqm_s6_0S6bcBX6xYXb8pLzxDJy5-m5AotyIV4f6uJPxYmTrmNkaXWQsGpk0PwY/exec';
-    let currentUser = "", allData = [], allPlans = [], chartInstance = null, currentChartType = 'bar';
-
-    function toggleDarkMode() { document.body.classList.toggle('dark-mode'); processDashboard(); }
-    function toggleHistory() { document.getElementById('historyPanel').classList.toggle('hidden-completely'); }
+    let currentUser = "", allData = [], allPlans = [], autoSyncTimer = null, chartInstance = null, currentChartType = 'bar';
+    const MONTHS_TH = ["ม.ค.","ก.พ.","มี.ค.","เม.ย.","พ.ค.","มิ.ย.","ก.ค.","ส.ค.","ก.ย.","ต.ค.","พ.ย.","ธ.ค."];
 
     async function login() {
-        const u = document.getElementById('user').value, p = document.getElementById('pass').value;
+        const u = document.getElementById('user').value;
+        const p = document.getElementById('pass').value;
         if(!u || !p) return;
-        document.getElementById('loadingOverlay').classList.remove('hidden-completely');
-        const res = await (await fetch(`${SCRIPT_URL}?action=login&user=${u}&pass=${p}`)).json();
-        if (res.status === "success") {
-            currentUser = res.name; document.getElementById('empName').innerText = res.name;
-            document.getElementById('loginSection').classList.add('hidden-completely');
-            document.getElementById('mainSection').classList.remove('hidden-completely');
-            await refreshView(); initYearFilter();
-        } else { Swal.fire('Error', 'ไม่ถูกต้อง', 'error'); }
-        document.getElementById('loadingOverlay').classList.add('hidden-completely');
-    }
-
-    async function manualRefresh() {
-        document.getElementById('loadingOverlay').classList.remove('hidden-completely');
-        await refreshView();
-        processDashboard();
-        document.getElementById('loadingOverlay').classList.add('hidden-completely');
-    }
-
-    async function refreshView() {
+        document.getElementById('loginInputs').classList.add('hidden-completely');
+        document.getElementById('loginStatus').classList.remove('hidden-completely');
+        document.getElementById('targetUserDisplay').innerText = `Username: ${u}`;
         try {
-            const res = await (await fetch(SCRIPT_URL)).json();
-            allData = res.data.slice(1); allPlans = res.plans.slice(1);
-            const todayStr = new Date().toISOString().split('T')[0];
-            const myToday = allData.filter(d => d[0].split('T')[0] === todayStr && d[1] === currentUser);
+            const res = await fetch(`${SCRIPT_URL}?action=login&user=${u}&pass=${p}`);
+            const data = await res.json();
+            if(data.status === "success") {
+                currentUser = data.name;
+                document.getElementById('empName').innerText = currentUser;
+                document.getElementById('loginSection').classList.add('hidden-completely');
+                document.getElementById('mainSection').classList.remove('hidden-completely');
+                initData();
+                if(!autoSyncTimer) { autoSyncTimer = setInterval(initData, 60000); }
+            } else {
+                Swal.fire('Error', 'เข้าระบบไม่สำเร็จ', 'error');
+                document.getElementById('loginInputs').classList.remove('hidden-completely');
+                document.getElementById('loginStatus').classList.add('hidden-completely');
+            }
+        } catch(e) { location.reload(); }
+    }
+
+    async function initData() {
+        try {
+            const res = await fetch(SCRIPT_URL);
+            const json = await res.json();
+            allData = json.data.slice(1);
+            allPlans = json.plans.slice(1);
             
-            const plan = allPlans.find(p => p[0].split('T')[0] === todayStr && p[1] === currentUser);
-            const target = plan ? parseInt(plan[3]) : 0;
-            const actual = myToday.length;
-            const diff = actual - target;
-
-            const pct = target > 0 ? Math.round((actual / target) * 100) : 0;
-            document.getElementById('goalProgress').style.width = Math.min(pct, 100) + "%";
-            document.getElementById('goalProgress').innerText = pct + "%";
-
-            const balEl = document.getElementById('displayBalance');
-            balEl.innerText = diff;
-            balEl.className = diff < 0 ? 'status-red' : (diff === 0 ? 'status-yellow' : 'status-green');
-
-            document.getElementById('displayTarget').innerText = target;
-            document.getElementById('displayActual').innerText = actual;
-            document.getElementById('displayDateText').innerText = "📅 " + new Date().toLocaleDateString('th-TH', {day:'numeric', month:'long'});
+            const year = new Date().getFullYear();
+            let yrHtml = "";
+            for(let y=year; y>=year-1; y--) yrHtml += `<option value="${y}">${y+543}</option>`;
+            document.getElementById('selYear').innerHTML = yrHtml;
             
-            const nowTime = new Date().toLocaleTimeString('th-TH');
-            document.querySelectorAll('.lastSyncTime').forEach(el => el.innerText = nowTime);
+            let dyHtml = "";
+            for(let d=1; d<=31; d++) dyHtml += `<option value="${d}" selected>${d}</option>`;
+            document.getElementById('selDay').innerHTML = dyHtml;
 
-            document.getElementById('historyTableBody').innerHTML = myToday.reverse().map(h => `
-                <tr><td>${new Date(h[0]).toLocaleTimeString('th-TH', {hour:'2-digit', minute:'2-digit'})}</td>
-                <td class="text-orange fw-bold">${h[2]}</td><td>${h[3]}</td></tr>
-            `).join('');
+            updateDashFilters();
+            updateHomeStats();
+            updateHistory();
             renderPlanTable();
-        } catch(e) {}
+            document.getElementById('lastSyncTime').innerText = `Synced: ${new Date().toLocaleTimeString('th-TH')}`;
+        } catch(e) { console.error(e); }
     }
 
-    /* 📊 Dashboard Core Logic */
-    function initYearFilter() {
-        const years = [...new Set(allData.map(d => d[0].split('-')[0]))].sort((a,b)=>b-a);
-        if(!years.length) years.push(new Date().getFullYear().toString());
-        document.getElementById('selYear').innerHTML = years.map(y => `<option value="${y}" selected>${y}</option>`).join('');
-        updateDashFilterLogic();
-    }
-
-    function updateDashFilterLogic() {
+    function updateDashFilters() {
         const type = document.getElementById('viewType').value;
-        document.getElementById('boxMonth').classList.toggle('hidden-completely', type === 'yearly');
-        document.getElementById('boxQuarter').classList.toggle('hidden-completely', type !== 'quarterly');
-        document.getElementById('boxDay').classList.toggle('hidden-completely', type !== 'daily');
-        updateMonthList();
-    }
+        const lbl = document.getElementById('lblSub');
+        const sel = document.getElementById('selSub');
+        const dayBox = document.getElementById('dayBox');
+        const mBox = document.getElementById('monthBox');
 
-    function updateMonthList() {
-        const months = ["ม.ค.","ก.พ.","มี.ค.","เม.ย.","พ.ค.","มิ.ย.","ก.ค.","ส.ค.","ก.ย.","ต.ค.","พ.ย.","ธ.ค."];
-        document.getElementById('selMonth').innerHTML = months.map((m, i) => `<option value="${i+1}" selected>${m}</option>`).join('');
-        updateDayList();
-    }
+        sel.innerHTML = "";
+        mBox.classList.remove('hidden-completely');
+        dayBox.classList.add('hidden-completely');
 
-    function updateDayList() {
-        const type = document.getElementById('viewType').value;
-        if(type !== 'daily') { processDashboard(); return; }
-        const years = Array.from(document.getElementById('selYear').selectedOptions).map(o => o.value);
-        const months = Array.from(document.getElementById('selMonth').selectedOptions).map(o => o.value.padStart(2, '0'));
-        let days = [...new Set(allData.filter(d => years.includes(d[0].split('-')[0]) && months.includes(d[0].split('-')[1])).map(d => d[0].split('T')[0]))].sort();
-        document.getElementById('selDay').innerHTML = days.map(d => `<option value="${d}" selected>${d}</option>`).join('');
+        if(type === 'daily' || type === 'monthly') {
+            lbl.innerText = "เดือน";
+            MONTHS_TH.forEach((m, i) => {
+                const isCur = new Date().getMonth() === i;
+                sel.innerHTML += `<option value="${i+1}" ${isCur ? 'selected' : ''}>${m}</option>`;
+            });
+            if(type === 'daily') dayBox.classList.remove('hidden-completely');
+        } else if(type === 'quarterly') {
+            lbl.innerText = "ไตรมาส";
+            [1,2,3,4].forEach(q => sel.innerHTML += `<option value="${q}" selected>Q${q}</option>`);
+        } else {
+            mBox.classList.add('hidden-completely');
+        }
         processDashboard();
     }
 
-    function processDashboard() {
+    function changeChartType(t) {
+        currentChartType = t;
+        document.getElementById('btn-bar').classList.toggle('active', t === 'bar');
+        document.getElementById('btn-line').classList.toggle('active', t === 'line');
+        processDashboard();
+    }
+
+function processDashboard() {
         const type = document.getElementById('viewType').value;
-        const years = Array.from(document.getElementById('selYear').selectedOptions).map(o => o.value);
-        const months = Array.from(document.getElementById('selMonth').selectedOptions).map(o => o.value.padStart(2, '0'));
-        const quarters = Array.from(document.getElementById('selQuarter').selectedOptions).map(o => o.value);
-        const days = Array.from(document.getElementById('selDay').selectedOptions).map(o => o.value);
+        const year = document.getElementById('selYear').value;
+        const sub = Array.from(document.getElementById('selSub').selectedOptions).map(o => parseInt(o.value));
+        const days = Array.from(document.getElementById('selDay').selectedOptions).map(o => parseInt(o.value));
 
         let groups = {};
-        // รวม Actual
-        allData.filter(d => d[1] === currentUser).forEach(d => {
-            const dt = d[0].split('T')[0];
-            const [y, m] = dt.split('-');
-            const q = Math.ceil(parseInt(m)/3).toString();
+        allData.filter(d => {
+            const dt = new Date(d[0]);
+            if(d[1] !== currentUser || dt.getFullYear() != year) return false;
+            const m = dt.getMonth() + 1;
+            const d_val = dt.getDate();
+            const q = Math.ceil(m / 3);
+            if(type === 'daily') return sub.includes(m) && days.includes(d_val);
+            if(type === 'monthly') return sub.includes(m);
+            if(type === 'quarterly') return sub.includes(q);
+            return true;
+        }).forEach(d => {
+            const dt = new Date(d[0]);
             let key = "";
-            if(type==='daily' && days.includes(dt)) key = dt;
-            else if(type==='monthly' && years.includes(y) && months.includes(m)) key = `${y}-${m}`;
-            else if(type==='yearly' && years.includes(y)) key = y;
-            else if(type==='quarterly' && years.includes(y) && quarters.includes(q)) key = `Q${q}-${y}`;
-            if(key) {
-                if(!groups[key]) groups[key] = {act:0, target:0, cp:0, call:0};
-                groups[key].act++;
-                if(d[2]==="CP No.") groups[key].cp++; else if(d[2]==="Call IN") groups[key].call++;
-            }
+            if(type === 'daily') key = d[0].split('T')[0];
+            else if(type === 'monthly') key = `${year}-${String(dt.getMonth()+1).padStart(2,'0')}`;
+            else if(type === 'quarterly') key = `${year}-Q${Math.ceil((dt.getMonth()+1)/3)}`;
+            else key = `${year}`;
+
+            if(!groups[key]) groups[key] = { CP:0, Call:0, IR:0, SR:0, Drop:0, Camp:0, total:0, target:0 };
+            if(d[2] === "CP No.") groups[key].CP++;
+            else if(d[2] === "Call IN") groups[key].Call++;
+            else if(d[2] === "IR") groups[key].IR++;
+            else if(d[2] === "SR") groups[key].SR++;
+            else if(d[2] === "Drop Call") groups[key].Drop++;
+            else if(d[2] === "Campaign") groups[key].Camp++;
+            groups[key].total++;
         });
-        // รวม Target
-        allPlans.filter(p => p[1] === currentUser).forEach(p => {
-            const dt = p[0].split('T')[0];
-            const [y, m] = dt.split('-');
-            const q = Math.ceil(parseInt(m)/3).toString();
+
+        allPlans.filter(p => {
+            const dt = new Date(p[0]);
+            if(p[1] !== currentUser || dt.getFullYear() != year) return false;
+            const m = dt.getMonth() + 1;
+            const d_val = dt.getDate();
+            const q = Math.ceil(m / 3);
+            if(type === 'daily') return sub.includes(m) && days.includes(d_val);
+            if(type === 'monthly') return sub.includes(m);
+            if(type === 'quarterly') return sub.includes(q);
+            return true;
+        }).forEach(p => {
+            const dt = new Date(p[0]);
             let key = "";
-            if(type==='daily' && days.includes(dt)) key = dt;
-            else if(type==='monthly' && years.includes(y) && months.includes(m)) key = `${y}-${m}`;
-            else if(type==='yearly' && years.includes(y)) key = y;
-            else if(type==='quarterly' && years.includes(y) && quarters.includes(q)) key = `Q${q}-${y}`;
-            if(key && groups[key]) groups[key].target += parseInt(p[3] || 0);
+            if(type === 'daily') key = p[0].split('T')[0];
+            else if(type === 'monthly') key = `${year}-${String(dt.getMonth()+1).padStart(2,'0')}`;
+            else if(type === 'quarterly') key = `${year}-Q${Math.ceil((dt.getMonth()+1)/3)}`;
+            else key = `${year}`;
+            if(groups[key]) groups[key].target += parseInt(p[3]);
         });
 
         const labels = Object.keys(groups).sort();
         if(chartInstance) chartInstance.destroy();
+        
         chartInstance = new Chart(document.getElementById('perfChart'), {
             type: currentChartType,
-            plugins: [ChartDataLabels],
+            plugins: [ChartDataLabels], // เปิดใช้งาน Plugin ตัวเลข
             data: { 
                 labels, 
-                datasets: [
-                    { label: 'Actual', data: labels.map(l => groups[l].act), backgroundColor: 'rgba(255, 140, 0, 0.7)', borderColor: '#e65100', datalabels: { align: 'end', anchor: 'end', color: 'orange', font: { weight: 'bold' } } },
-                    { label: 'Target', data: labels.map(l => groups[l].target), backgroundColor: 'rgba(100, 100, 100, 0.2)', borderColor: '#666', type: 'line', datalabels: { align: 'top', color: '#666' } }
-                ] 
+                datasets: [{ 
+                    label: 'Actual', 
+                    data: labels.map(l => groups[l].total), 
+                    backgroundColor: 'rgba(255, 140, 0, 0.7)', 
+                    borderColor: '#ff8c00', 
+                    borderWidth: 2,
+                    fill: currentChartType === 'line',
+                    tension: 0.3
+                }]
             },
-            options: { responsive: true, maintainAspectRatio: false }
+            options: { 
+                responsive: true, 
+                maintainAspectRatio: false,
+                plugins: {
+                    datalabels: { // ตั้งค่าการแสดงตัวเลข Label
+                        anchor: 'end',
+                        align: 'top',
+                        color: '#444',
+                        font: { weight: 'bold', size: 11 },
+                        formatter: Math.round
+                    },
+                    legend: { display: false }
+                },
+                scales: {
+                    y: { beginAtZero: true, grid: { display: false } }
+                }
+            }
         });
-        document.getElementById('dashTableBody').innerHTML = labels.reverse().map(l => `<tr><td>${l}</td><td>${groups[l].cp}</td><td>${groups[l].call}</td><td class="fw-bold text-orange">${groups[l].act}</td><td class="text-muted">${groups[l].target}</td></tr>`).join('');
+
+        document.getElementById('dashTableBody').innerHTML = labels.reverse().map(l => {
+            const g = groups[l];
+            const pct = g.target > 0 ? ((g.total / g.target) * 100).toFixed(0) : 0;
+            return `<tr><td>${l}</td><td>${g.CP}</td><td>${g.Call}</td><td>${g.IR}</td><td>${g.SR}</td><td>${g.Drop}</td><td>${g.Camp}</td><td class="table-primary fw-bold">${g.total}</td><td>${g.target}</td><td class="fw-bold text-success">${pct}%</td></tr>`;
+        }).join('');
+    }
+
+    function updateHomeStats() {
+        const todayStr = new Date().toISOString().split('T')[0];
+        const myToday = allData.filter(d => d[0].split('T')[0] === todayStr && d[1] === currentUser);
+        const plan = allPlans.find(p => p[0].split('T')[0] === todayStr && p[1] === currentUser);
+        const target = plan ? parseInt(plan[3]) : 0;
+        const actual = myToday.length;
+        document.getElementById('displayTarget').innerText = target;
+        document.getElementById('displayActual').innerText = actual;
+        document.getElementById('displayBalance').innerText = actual - target;
+        const badgeMap = { "CP No.": "CP", "Call IN": "Call", "IR": "IR", "SR": "SR", "Drop Call": "Drop", "Campaign": "Camp" };
+        Object.keys(badgeMap).forEach(key => {
+            const el = document.getElementById(`badge-${badgeMap[key]}`);
+            if(el) el.innerText = myToday.filter(d => d[2] === key).length;
+        });
+        const pct = target > 0 ? Math.min(Math.round((actual/target)*100), 100) : 0;
+        document.getElementById('goalProgress').style.width = pct + "%";
+        document.getElementById('goalProgress').innerText = pct + "%";
+    }
+
+    function updateHistory() {
+        const todayStr = new Date().toISOString().split('T')[0];
+        const history = allData.filter(d => d[0].split('T')[0] === todayStr && d[1] === currentUser).reverse();
+        const tbody = document.getElementById('historyBody');
+        if (history.length === 0) { tbody.innerHTML = '<tr><td colspan="3" class="text-center text-muted">ไม่พบข้อมูล</td></tr>'; return; }
+        tbody.innerHTML = history.map(d => `<tr><td>${new Date(d[0]).toLocaleTimeString('th-TH')}</td><td>${d[3]}</td><td><span class="badge bg-warning text-dark">${d[2]}</span></td></tr>`).join('');
+    }
+
+    function toggleHistoryVisibility() {
+        const content = document.getElementById('historyContent');
+        const btn = document.getElementById('btnToggleHistory');
+        if (content.classList.contains('hidden-completely')) {
+            content.classList.remove('hidden-completely');
+            btn.innerHTML = '<i class="fa-solid fa-eye-slash"></i> ซ่อนประวัติ';
+        } else {
+            content.classList.add('hidden-completely');
+            btn.innerHTML = '<i class="fa-solid fa-eye"></i> แสดงประวัติ';
+        }
+    }
+
+    async function savePlan() {
+        const d = document.getElementById('planDate').value;
+        const v = document.getElementById('planVal').value;
+        if(!d) return;
+        await fetch(SCRIPT_URL, { method:'POST', body: JSON.stringify({ action:'savePlan', user:currentUser, date:d, target:v }) });
+        initData();
     }
 
     function renderPlanTable() {
-        const monthFilter = document.getElementById('assignMonthFilter').value;
-        let f = allPlans.filter(p => p[1] === currentUser);
-        if(monthFilter !== 'all') f = f.filter(p => (new Date(p[0]).getMonth() + 1).toString() === monthFilter);
-        document.getElementById('planTableBody').innerHTML = f.sort((a,b)=>new Date(b[0])-new Date(a[0])).map(p => `<tr><td>${p[0].split('T')[0]}</td><td><b>${p[3]}</b></td><td><i class="fa-solid fa-trash text-danger" onclick="savePlan('delete','${p[0].split('T')[0]}')" style="cursor:pointer"></i></td></tr>`).join('');
-    }
-
-    function showTab(t) { 
-        document.querySelectorAll('.tab-content').forEach(e => e.classList.add('hidden-completely')); 
-        document.getElementById('tab-'+t).classList.remove('hidden-completely'); 
-        document.querySelectorAll('.nav-btn').forEach(b => b.classList.remove('active-btn')); 
-        document.getElementById('nav-'+t).classList.add('active-btn');
-        if(t==='dash') processDashboard();
+        const myPlans = allPlans.filter(p => p[1] === currentUser).sort((a,b) => new Date(b[0]) - new Date(a[0]));
+        document.getElementById('planTableBody').innerHTML = myPlans.map(p => `<tr><td>${p[0].split('T')[0]}</td><td>${p[3]}</td><td><i class="fa fa-trash text-danger" onclick="deletePlan('${p[0]}')"></i></td></tr>`).join('');
     }
 
     async function saveWork() {
-        const entries = []; 
-        document.querySelectorAll('.cat-input').forEach(i => { if(i.value.trim()) i.value.split(',').forEach(id => entries.push({category: i.dataset.cat, caseId: id.trim()})); });
-        if(!entries.length) return;
-        Swal.fire({title:'กำลังบันทึก...', didOpen:()=>Swal.showLoading()});
-        await fetch(SCRIPT_URL, { method:'POST', mode:'no-cors', body: JSON.stringify({action:'saveData', employee:currentUser, entries}) });
-        document.querySelectorAll('.cat-input').forEach(i => i.value = "");
-        await refreshView(); Swal.close();
+        const inputs = document.querySelectorAll('.cat-input');
+        let items = [];
+        inputs.forEach(i => { if(i.value) items.push({ cat: i.dataset.cat, id: i.value }); });
+        if(!items.length) return;
+        Swal.fire({ title: 'Saving...', didOpen: () => Swal.showLoading() });
+        await fetch(SCRIPT_URL, { method:'POST', body: JSON.stringify({ action:'saveWork', user:currentUser, items }) });
+        inputs.forEach(i => i.value = "");
+        await initData();
+        Swal.close();
     }
 
-    async function savePlan(a, d) { await fetch(SCRIPT_URL, {method:'POST', body: JSON.stringify({action:'savePlan', subAction: a, date: d || document.getElementById('planDate').value, employee: currentUser, target: document.getElementById('planType').value})}); refreshView(); }
-    function changeChartType(t) { currentChartType = t; processDashboard(); }
-    function logout() { location.reload(); }
-    setInterval(() => { document.getElementById('bigClock').innerText = new Date().toLocaleTimeString('th-TH'); }, 1000);
+    function showTab(t) {
+        document.querySelectorAll('.tab-content').forEach(el => el.classList.add('hidden-completely'));
+        document.getElementById('tab-'+t).classList.remove('hidden-completely');
+        document.querySelectorAll('.nav-btn').forEach(b => b.classList.remove('active-btn'));
+        document.getElementById('nav-'+t).classList.add('active-btn');
+        if(t === 'dash') processDashboard();
+    }
+function parseCPData() {
+        const input = document.getElementById('cpRawInput').value;
+        if(!input) return;
+        const lines = input.split('\n');
+        
+        let addr = { bld: "", no: "", soi: "", rd: "", tmb: "", amp: "", prv: "", ldm: "" };
+        let provinceIndex = -1;
+
+        lines.forEach((line, index) => {
+            // ดึงข้อมูล IMSI และ สัญญาณ (คงเดิมไม่แก้ไข)
+            const cols = line.split(/\t| {2,}/).map(c => c.trim()).filter(c => c !== "");
+            if (cols.length >= 8) {
+                const timeStr = cols[0], imsi = cols[1], type = cols[2], cellId = cols[4];
+                if (type === "4G") {
+                    document.getElementById('td-imsi').innerText = imsi.split('.')[0];
+                    document.getElementById('td-4gcell').innerText = `${timeStr} ${cellId} 4G`;
+                    document.getElementById('td-4grsrp').innerText = cols[6] || "";
+                    document.getElementById('td-4grsrq').innerText = cols[7] || "";
+                } else if (type === "5G") {
+                    document.getElementById('td-5gcell').innerText = `${timeStr} ${cellId} 5G`;
+                    document.getElementById('td-5grsrp').innerText = cols[8] || "";
+                    document.getElementById('td-5gsinr').innerText = cols[9] || "";
+                }
+            }
+
+            // --- ส่วนที่แก้ไข: การดึงเฉพาะค่าข้อมูล (Values) ---
+
+            // 1. ดึงชื่ออาคาร/สถานที่ (ตัดคำว่า Location/Building Detail ออกเด็ดขาด)
+            if (line.includes("Location/Building Detail :")) {
+                let val = line.split("Location/Building Detail :")[1];
+                // ถ้ามีข้อความอื่นต่อท้ายในบรรทัดเดียวกัน ให้ตัดออก (ถ้ามี)
+                addr.bld = val ? val.trim() : "";
+            }
+
+            // 2. ดึงเลขที่ และ ซอย
+            if (line.includes("Address No. :")) {
+                let part = line.split("Address No. :")[1];
+                addr.no = part ? part.split("Soi :")[0].trim() : "";
+                if (line.includes("Soi :")) {
+                    addr.soi = line.split("Soi :")[1].trim();
+                }
+            }
+
+            // 3. ดึงถนน และ ตำบล
+            if (line.includes("Road :")) {
+                let part = line.split("Road :")[1];
+                addr.rd = part ? part.split("Tumbol :")[0].trim() : "";
+                if (line.includes("Tumbol :")) {
+                    addr.tmb = line.split("Tumbol :")[1].trim();
+                }
+            }
+
+            // 4. ดึงอำเภอ และ จังหวัด
+            if (line.includes("Amphur :")) {
+                let part = line.split("Amphur :")[1];
+                addr.amp = part ? part.split("Province :")[0].trim() : "";
+                if (line.includes("Province :")) {
+                    addr.prv = line.split("Province :")[1].trim();
+                }
+                provinceIndex = index; // จำบรรทัดจังหวัดเพื่อหาจุดสังเกตในบรรทัดถัดไป
+            }
+        });
+
+        // 5. ดึงจุดสังเกต (บรรทัดถัดจากจังหวัด)
+        if (provinceIndex !== -1 && lines[provinceIndex + 1]) {
+            let ldmVal = lines[provinceIndex + 1].trim();
+            // ตรวจสอบเบื้องต้นว่าไม่ใช่บรรทัดว่างหรือบรรทัดที่มีแต่ขีด
+            addr.ldm = (ldmVal && ldmVal !== "-") ? ldmVal : "";
+        }
+
+        // --- การจัด Format Address เพื่อแสดงผล ---
+        let formattedAddr = [];
+        
+        if (addr.no && addr.no !== "-") formattedAddr.push(addr.no);
+        if (addr.bld && addr.bld !== "-") formattedAddr.push(addr.bld); 
+        if (addr.rd && addr.rd !== "-") formattedAddr.push("ถนน " + addr.rd);
+        if (addr.soi && addr.soi !== "-") formattedAddr.push("ซอย " + addr.soi);
+        if (addr.tmb && addr.tmb !== "-") formattedAddr.push("ต." + addr.tmb);
+        if (addr.amp && addr.amp !== "-") formattedAddr.push("อ." + addr.amp);
+        if (addr.prv && addr.prv !== "-") formattedAddr.push("จ." + addr.prv);
+        if (addr.ldm) formattedAddr.push("จุดสังเกต " + addr.ldm);
+
+        // นำไปใส่ในช่อง Address และล้างช่อง Remark (td-msisdn) ให้ว่าง
+        document.getElementById('td-address').innerText = formattedAddr.join(" ");
+        document.getElementById('td-msisdn').innerText = ""; 
+    }
+    function logout() { localStorage.clear(); location.reload(); }
+
+    function updateClock() {
+        const now = new Date();
+        document.getElementById('bigClock').innerText = now.toLocaleTimeString('th-TH', { hour12: false });
+        const options = { weekday: 'long', year: 'numeric', month: 'long', day: 'numeric' };
+        document.getElementById('todayDateLabel').innerText = now.toLocaleDateString('th-TH', options);
+    }
+    setInterval(updateClock, 1000);
+    updateClock();
+
+function copyCPTable() {
+        let text = "";
+        const rows = document.querySelectorAll('#cpTable tbody tr');
+        
+        rows.forEach(row => {
+            const label = row.querySelector('.cp-label-custom')?.innerText || "";
+            const value = row.querySelector('.cp-value-custom')?.innerText || "";
+            
+            // ตรวจสอบว่ามีข้อมูลในช่อง value หรือไม่ก่อนคัดลอก
+            if (value.trim() !== "") {
+                text += label + " " + value + "\n";
+            }
+        });
+
+        if (!text) {
+            Swal.fire({ icon: 'warning', title: 'ไม่มีข้อมูลให้คัดลอก' });
+            return;
+        }
+
+        navigator.clipboard.writeText(text.trim()).then(() => {
+            Swal.fire({ 
+                icon: 'success', 
+                title: 'คัดลอกแล้ว!', 
+                timer: 1000, 
+                showConfirmButton: false 
+            });
+        }).catch(err => {
+            console.error('ไม่สามารถคัดลอกได้:', err);
+            Swal.fire({ icon: 'error', title: 'เกิดข้อผิดพลาดในการคัดลอก' });
+        });
+    }
+function clearCP() {
+        // 1. ล้างช่องสำหรับวางข้อมูลดิบ (Textarea)
+        const rawInput = document.getElementById('cpRawInput');
+        if (rawInput) {
+            rawInput.value = ""; //
+        }
+
+        // 2. ค้นหาทุก Element ที่มี Class สำหรับแสดงผลค่า (cp-value-custom) 
+        // แล้วล้างให้เป็นค่าว่างทั้งหมดเหมือนเปิดหน้าเว็บใหม่
+        const allValueCells = document.querySelectorAll('.cp-value-custom');
+        allValueCells.forEach(cell => {
+            cell.innerText = ""; // ล้างข้อมูลออกทุกช่องที่มีอยู่ในหน้าจอ
+        });
+
+        // 3. แจ้งเตือนสถานะการ Reset
+        if (typeof Swal !== 'undefined') {
+            Swal.fire({
+                icon: 'success',
+                title: 'Reset ข้อมูลหน้าจอเรียบร้อยแล้ว',
+                timer: 800,
+                showConfirmButton: false
+            });
+        }
+    }
 </script>
 </body>
 </html>
