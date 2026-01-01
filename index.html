@@ -139,36 +139,45 @@
         </div>
 
         <div id="tab-cp" class="tab-content hidden-completely">
-            <div class="glass-card">
-                <h6 class="fw-bold mb-3" style="color:var(--deep-orange)"><i class="fa-solid fa-bolt me-2"></i>Smart CP Splitter</h6>
-                <textarea id="cpRawInput" class="form-control mb-3" rows="3" placeholder="วางข้อมูลจากระบบที่นี่..." oninput="parseCPData()"></textarea>
-                
-                <div class="table-responsive">
-                    <table class="cp-table-render" id="cpTable">
-                        <thead><tr><th colspan="2" class="cp-section-title">ข้อมูลสรุปรายละเอียด</th></tr></thead>
-                        <tbody>
-                            <tr><td class="cp-label-custom">IMSI :</td><td id="td-imsi" class="cp-value-custom" contenteditable="true"></td></tr>
-                            <tr><td class="cp-label-custom">4GCell Name:</td><td id="td-4gcell" class="cp-value-custom" contenteditable="true"></td></tr>
-                            <tr><td class="cp-label-custom">4G Signal Strength :</td><td id="td-4grsrp" class="cp-value-custom" contenteditable="true"></td></tr>
-                            <tr><td class="cp-label-custom">4GSignal Quality :</td><td id="td-4grsrq" class="cp-value-custom" contenteditable="true"></td></tr>
-                            <tr><td class="cp-label-custom">5GCell Name:</td><td id="td-5gcell" class="cp-value-custom" contenteditable="true"></td></tr>
-                            <tr><td class="cp-label-custom">5G Signal Strength :</td><td id="td-5grsrp" class="cp-value-custom" contenteditable="true"></td></tr>
-                            <tr><td class="cp-label-custom">5GSignal Quality :</td><td id="td-5gsinr" class="cp-value-custom" contenteditable="true"></td></tr>
-                            <tr><td class="cp-label-custom">Address :</td><td id="td-address" class="cp-value-custom" contenteditable="true"></td></tr>
-                            <tr><td class="cp-label-custom">Remark :</td><td id="td-msisdn" class="cp-value-custom" contenteditable="true"></td></tr>
-                            <tr><td class="cp-label-custom">Service year :</td><td id="td-msisdn" class="cp-value-custom" contenteditable="true"></td></tr>
-                            <tr><td class="cp-label-custom">Arpu :</td><td id="td-msisdn" class="cp-value-custom" contenteditable="true"></td></tr>
-                            <tr><td class="cp-label-custom">Package :</td><td id="td-package" class="cp-value-custom" contenteditable="true"></td></tr>
-                            <tr><td class="cp-label-custom">Package Remaining :</td><td id="td-package" class="cp-value-custom" contenteditable="true"></td></tr>
-                        </tbody>
-                    </table>
-                </div>
-                <div class="row g-2 mt-3">
-                    <div class="col-4"><button class="btn btn-light w-100 rounded-pill border fw-bold" onclick="clearCP()">ล้าง</button></div>
-                    <div class="col-8"><button class="btn btn-warning w-100 rounded-pill text-white fw-bold shadow" onclick="copyCPTable()"><i class="fa-regular fa-copy me-2"></i>Copy Table</button></div>
-                </div>
-            </div>
+    <div class="glass-card">
+        <h6 class="fw-bold mb-3" style="color:var(--deep-orange)"><i class="fa-solid fa-bolt me-2"></i>Smart CP Splitter</h6>
+        
+        <div class="mb-2">
+            <label class="small fw-bold text-primary">วางข้อมูล 4G ที่นี่:</label>
+            <textarea id="cpInput4G" class="form-control form-control-sm" rows="3" placeholder="วางข้อมูล 4G..." oninput="parseCPData()"></textarea>
         </div>
+
+        <div class="mb-2">
+            <label class="small fw-bold text-danger">วางข้อมูล 5G ที่นี่:</label>
+            <textarea id="cpInput5G" class="form-control form-control-sm" rows="3" placeholder="วางข้อมูล 5G..." oninput="parseCPData()"></textarea>
+        </div>
+
+        <div class="mb-3">
+            <label class="small fw-bold text-success">วางข้อมูลที่อยู่ (Address) ที่นี่:</label>
+            <textarea id="cpInputAddr" class="form-control form-control-sm" rows="3" placeholder="วางข้อมูลที่อยู่..." oninput="parseCPData()"></textarea>
+        </div>
+        
+        <div class="table-responsive">
+            <table class="cp-table-render" id="cpTable">
+                <thead><tr><th colspan="2" class="cp-section-title">ข้อมูลสรุปรายละเอียด</th></tr></thead>
+                <tbody>
+                    <tr><td class="cp-label-custom">IMSI :</td><td id="td-imsi" class="cp-value-custom">-</td></tr>
+                    <tr><td class="cp-label-custom">4GCell Name:</td><td id="td-4gcell" class="cp-value-custom">-</td></tr>
+                    <tr><td class="cp-label-custom">4G Signal Strength :</td><td id="td-4grsrp" class="cp-value-custom">-</td></tr>
+                    <tr><td class="cp-label-custom">4GSignal Quality :</td><td id="td-4grsrq" class="cp-value-custom">-</td></tr>
+                    <tr><td class="cp-label-custom">5GCell Name:</td><td id="td-5gcell" class="cp-value-custom">-</td></tr>
+                    <tr><td class="cp-label-custom">5G Signal Strength :</td><td id="td-5grsrp" class="cp-value-custom">-</td></tr>
+                    <tr><td class="cp-label-custom">5GSignal Quality :</td><td id="td-5gsinr" class="cp-value-custom">-</td></tr>
+                    <tr><td class="cp-label-custom">ที่อยู่ (Address) :</td><td id="td-address" class="cp-value-custom">-</td></tr>
+                </tbody>
+            </table>
+        </div>
+        <div class="row g-2 mt-3">
+            <div class="col-4"><button class="btn btn-light w-100 rounded-pill border fw-bold" onclick="clearCP()">ล้าง</button></div>
+            <div class="col-8"><button class="btn btn-warning w-100 rounded-pill text-white fw-bold shadow" onclick="copyCPTable()"><i class="fa-regular fa-copy me-2"></i>Copy Table</button></div>
+        </div>
+    </div>
+</div>
 
         <div id="tab-dash" class="tab-content hidden-completely">
             <div class="glass-card">
@@ -707,456 +716,104 @@ function renderDashTable(groups) {
         document.getElementById('btn-line').classList.toggle('active', t==='line');
         processDashboard();
     }
-    function parseCPData() {
-    const input = document.getElementById('cpRawInput').value;
-    if (!input) return;
-    
-    // แยกบรรทัดและตัดช่องว่างหัวท้ายของแต่ละบรรทัด
-    const lines = input.split('\n').map(l => l.trim());
-    let addr = { bld: "", no: "", soi: "", rd: "", tmb: "", amp: "", prv: "", ldm: "" };
-    
-    // ล้างค่าเก่าในตาราง
-    document.querySelectorAll('.cp-value-custom').forEach(td => td.innerText = "-");
+ function parseCPData() {
+    // 1. ดึงค่าจากทั้ง 3 ช่อง
+    const val4G = document.getElementById('cpInput4G').value.trim();
+    const val5G = document.getElementById('cpInput5G').value.trim();
+    const valAddr = document.getElementById('cpInputAddr').value.trim();
 
-    lines.forEach((line, index) => {
-        // --- 1. ดึงข้อมูลสัญญาณและ IMSI ---
-        const cols = line.split(/\t| {2,}/).filter(c => c !== "");
-        if (cols.length >= 7) {
-            const type = cols[2]; 
-            if (type === "4G") {
-                document.getElementById('td-imsi').innerText = cols[1] ? cols[1].split('.')[0] : "-";
-                document.getElementById('td-4gcell').innerText = `${cols[0]} ${cols[4]} 4G`;
-                document.getElementById('td-4grsrp').innerText = cols[6] || "-";
-                document.getElementById('td-4grsrq').innerText = cols[7] || "-";
-            } else if (type === "5G") {
-                document.getElementById('td-5gcell').innerText = `${cols[0]} ${cols[4]} 5G`;
-                document.getElementById('td-5grsrp').innerText = cols[8] || "-";
-                document.getElementById('td-5gsinr').innerText = cols[9] || "-";
-            }
+    // ฟังก์ชันล้างบรรทัดว่างออก เพื่อให้นับลำดับได้แม่นยำ
+    const cleanLines = (text) => text.split('\n').map(l => l.trim()).filter(line => line.length > 0);
+
+    // --- ส่วนที่ 1: ข้อมูล 4G (ตามเงื่อนไขที่คุณกำหนดไว้) ---
+    if (val4G) {
+        const lines4G = cleanLines(val4G);
+        if (lines4G.length >= 2) document.getElementById('td-imsi').innerText = lines4G[1]; // บรรทัด 2
+        if (lines4G.length >= 5) {
+            // บรรทัด 1 + บรรทัด 5 + บรรทัด 3
+            document.getElementById('td-4gcell').innerText = `${lines4G[0]} ${lines4G[4]} ${lines4G[2]}`;
         }
+        if (lines4G.length >= 7) document.getElementById('td-4grsrp').innerText = lines4G[6]; // บรรทัด 7
+        if (lines4G.length >= 8) document.getElementById('td-4grsrq').innerText = lines4G[7]; // บรรทัด 8
+    }
 
-        // --- 2. ดึงข้อมูลที่อยู่ (ปรับปรุงให้ดึง 'ห้องเช่าเติมสุข' ได้) ---
-        
-        if (line.includes("Location/Building Detail :")) {
-            // แยกด้วยเครื่องหมาย : แล้วเอาตัวสุดท้าย
-            let parts = line.split("Location/Building Detail :");
-            let val = parts[1] ? parts[1].trim() : "";
-            
-            // ถ้าหลังเครื่องหมาย : เป็นช่องว่าง หรือขีด ให้เช็คบรรทัดถัดไป
-            if (!val || val === "-") {
-                if (lines[index + 1] && !lines[index + 1].includes(":")) {
-                    addr.bld = lines[index + 1].trim();
-                }
-            } else {
-                addr.bld = val;
-            }
+    // --- ส่วนที่ 2: ข้อมูล 5G (ตามเงื่อนไขที่คุณกำหนดไว้) ---
+    if (val5G) {
+        const lines5G = cleanLines(val5G);
+        // IMSI: ถ้าช่อง 4G ว่าง ให้ใช้จากช่อง 5G บรรทัดที่ 2
+        if (lines5G.length >= 2 && (document.getElementById('td-imsi').innerText === "-" || document.getElementById('td-imsi').innerText === "")) {
+            document.getElementById('td-imsi').innerText = lines5G[1];
         }
-
-        if (line.includes("Address No. :")) {
-            let val = line.split("Address No. :")[1].split("Soi :")[0].trim();
-            addr.no = (val !== "-") ? val : "";
-            if (line.includes("Soi :")) {
-                addr.soi = line.split("Soi :")[1].trim();
-            }
+        if (lines5G.length >= 5) {
+            document.getElementById('td-5gcell').innerText = `${lines5G[0]} ${lines5G[4]} ${lines5G[2]}`;
         }
+        if (lines5G.length >= 9) document.getElementById('td-5grsrp').innerText = lines5G[8]; // บรรทัด 9
+        if (lines5G.length >= 10) document.getElementById('td-5gsinr').innerText = lines5G[9]; // บรรทัด 10
+    }
 
-        if (line.includes("Road :")) {
-            let val = line.split("Road :")[1].split("Tumbol :")[0].trim();
-            addr.rd = (val !== "-") ? val : "";
-            if (line.includes("Tumbol :")) {
-                addr.tmb = line.split("Tumbol :")[1].trim();
+    // --- ส่วนที่ 3: ปรับปรุงการดึง Address (แนวตั้ง -> แถวเดียว) ---
+    if (valAddr) {
+        const lines = cleanLines(valAddr); // ล้างบรรทัดว่างทิ้งก่อนเพื่อให้ค้นหาง่าย
+        let addr = { no: "", bld: "", soi: "", rd: "", tmb: "", amp: "", prv: "", ldm: "" };
+
+        // ฟังก์ชันค้นหาหัวข้อและดึงค่าบรรทัดถัดไปทันที
+        const findValue = (label) => {
+            const idx = lines.findIndex(l => l.toLowerCase().includes(label.toLowerCase()));
+            if (idx !== -1 && lines[idx + 1]) {
+                let v = lines[idx + 1];
+                return (v.includes("ไม่รู้ข้อมูล") || v === "-") ? "" : v;
             }
-        }
+            return "";
+        };
 
-        if (line.includes("Amphur :")) {
-            let val = line.split("Amphur :")[1].split("Province :")[0].trim();
-            addr.amp = (val !== "-") ? val : "";
-            if (line.includes("Province :")) {
-                addr.prv = line.split("Province :")[1].trim();
-            }
-            
-            // ดึงจุดสังเกต (Landmark) บรรทัดถัดไป
-            if (lines[index + 1] && !lines[index + 1].includes(":") && lines[index+1] !== "-") {
-                addr.ldm = lines[index + 1].trim();
-            }
-        }
-    });
+        addr.no = findValue("Address No.");
+        addr.bld = findValue("Location/Building");
+        addr.soi = findValue("Soi :");
+        addr.rd = findValue("Road :");
+        addr.tmb = findValue("Tumbol :");
+        addr.amp = findValue("Amphur :");
+        addr.prv = findValue("Province :");
+        addr.ldm = findValue("จุดสังเกต :");
 
-    // --- 3. ประกอบร่างที่อยู่ ---
-    let formattedAddr = [];
-    if (addr.no && addr.no !== "-") formattedAddr.push(addr.no);
-    if (addr.bld && addr.bld !== "-") formattedAddr.push(addr.bld); 
-    if (addr.rd && addr.rd !== "-") formattedAddr.push("ถ." + addr.rd);
-    if (addr.soi && addr.soi !== "-") formattedAddr.push("ซ." + addr.soi);
-    if (addr.tmb && addr.tmb !== "-") formattedAddr.push("ต." + addr.tmb);
-    if (addr.amp && addr.amp !== "-") formattedAddr.push("อ." + addr.amp);
-    if (addr.prv && addr.prv !== "-") formattedAddr.push("จ." + addr.prv);
-    if (addr.ldm && addr.ldm !== "-") formattedAddr.push("(จุดสังเกต: " + addr.ldm + ")");
+        // จัดเรียงเป็นแถวเดียว (Horizontal) ตามที่ต้องการ
+        const formatted = [
+            addr.no,
+            addr.bld,
+            addr.soi ? "ซ." + addr.soi : "",
+            addr.rd ? "ถ." + addr.rd : "",
+            addr.tmb ? "ต." + addr.tmb : "",
+            addr.amp ? "อ." + addr.amp : "",
+            addr.prv ? "จ." + addr.prv : "",
+            addr.ldm ? "(จุดสังเกต: " + addr.ldm + ")" : ""
+        ].filter(x => x).join(" ");
 
-    document.getElementById('td-address').innerText = formattedAddr.join(" ") || "-";
-}function parseCPData() {
-    const input = document.getElementById('cpRawInput').value;
-    if (!input) return;
-    
-    // แยกบรรทัดและตัดช่องว่างหัวท้ายของแต่ละบรรทัด
-    const lines = input.split('\n').map(l => l.trim());
-    let addr = { bld: "", no: "", soi: "", rd: "", tmb: "", amp: "", prv: "", ldm: "" };
-    
-    // ล้างค่าเก่าในตาราง
-    document.querySelectorAll('.cp-value-custom').forEach(td => td.innerText = "-");
-
-    lines.forEach((line, index) => {
-        // --- 1. ดึงข้อมูลสัญญาณและ IMSI ---
-        const cols = line.split(/\t| {2,}/).filter(c => c !== "");
-        if (cols.length >= 7) {
-            const type = cols[2]; 
-            if (type === "4G") {
-                document.getElementById('td-imsi').innerText = cols[1] ? cols[1].split('.')[0] : "-";
-                document.getElementById('td-4gcell').innerText = `${cols[0]} ${cols[4]} 4G`;
-                document.getElementById('td-4grsrp').innerText = cols[6] || "-";
-                document.getElementById('td-4grsrq').innerText = cols[7] || "-";
-            } else if (type === "5G") {
-                document.getElementById('td-5gcell').innerText = `${cols[0]} ${cols[4]} 5G`;
-                document.getElementById('td-5grsrp').innerText = cols[8] || "-";
-                document.getElementById('td-5gsinr').innerText = cols[9] || "-";
-            }
-        }
-
-        // --- 2. ดึงข้อมูลที่อยู่ (ปรับปรุงให้ดึง 'ห้องเช่าเติมสุข' ได้) ---
-        
-        if (line.includes("Location/Building Detail :")) {
-            // แยกด้วยเครื่องหมาย : แล้วเอาตัวสุดท้าย
-            let parts = line.split("Location/Building Detail :");
-            let val = parts[1] ? parts[1].trim() : "";
-            
-            // ถ้าหลังเครื่องหมาย : เป็นช่องว่าง หรือขีด ให้เช็คบรรทัดถัดไป
-            if (!val || val === "-") {
-                if (lines[index + 1] && !lines[index + 1].includes(":")) {
-                    addr.bld = lines[index + 1].trim();
-                }
-            } else {
-                addr.bld = val;
-            }
-        }
-
-        if (line.includes("Address No. :")) {
-            let val = line.split("Address No. :")[1].split("Soi :")[0].trim();
-            addr.no = (val !== "-") ? val : "";
-            if (line.includes("Soi :")) {
-                addr.soi = line.split("Soi :")[1].trim();
-            }
-        }
-
-        if (line.includes("Road :")) {
-            let val = line.split("Road :")[1].split("Tumbol :")[0].trim();
-            addr.rd = (val !== "-") ? val : "";
-            if (line.includes("Tumbol :")) {
-                addr.tmb = line.split("Tumbol :")[1].trim();
-            }
-        }
-
-        if (line.includes("Amphur :")) {
-            let val = line.split("Amphur :")[1].split("Province :")[0].trim();
-            addr.amp = (val !== "-") ? val : "";
-            if (line.includes("Province :")) {
-                addr.prv = line.split("Province :")[1].trim();
-            }
-            
-            // ดึงจุดสังเกต (Landmark) บรรทัดถัดไป
-            if (lines[index + 1] && !lines[index + 1].includes(":") && lines[index+1] !== "-") {
-                addr.ldm = lines[index + 1].trim();
-            }
-        }
-    });
-
-    // --- 3. ประกอบร่างที่อยู่ ---
-    let formattedAddr = [];
-    if (addr.no && addr.no !== "-") formattedAddr.push(addr.no);
-    if (addr.bld && addr.bld !== "-") formattedAddr.push(addr.bld); 
-    if (addr.rd && addr.rd !== "-") formattedAddr.push("ถ." + addr.rd);
-    if (addr.soi && addr.soi !== "-") formattedAddr.push("ซ." + addr.soi);
-    if (addr.tmb && addr.tmb !== "-") formattedAddr.push("ต." + addr.tmb);
-    if (addr.amp && addr.amp !== "-") formattedAddr.push("อ." + addr.amp);
-    if (addr.prv && addr.prv !== "-") formattedAddr.push("จ." + addr.prv);
-    if (addr.ldm && addr.ldm !== "-") formattedAddr.push("(จุดสังเกต: " + addr.ldm + ")");
-
-    document.getElementById('td-address').innerText = formattedAddr.join(" ") || "-";
-}function parseCPData() {
-    const input = document.getElementById('cpRawInput').value;
-    if (!input) return;
-    
-    // แยกบรรทัดและตัดช่องว่างหัวท้ายของแต่ละบรรทัด
-    const lines = input.split('\n').map(l => l.trim());
-    let addr = { bld: "", no: "", soi: "", rd: "", tmb: "", amp: "", prv: "", ldm: "" };
-    
-    // ล้างค่าเก่าในตาราง
-    document.querySelectorAll('.cp-value-custom').forEach(td => td.innerText = "-");
-
-    lines.forEach((line, index) => {
-        // --- 1. ดึงข้อมูลสัญญาณและ IMSI ---
-        const cols = line.split(/\t| {2,}/).filter(c => c !== "");
-        if (cols.length >= 7) {
-            const type = cols[2]; 
-            if (type === "4G") {
-                document.getElementById('td-imsi').innerText = cols[1] ? cols[1].split('.')[0] : "-";
-                document.getElementById('td-4gcell').innerText = `${cols[0]} ${cols[4]} 4G`;
-                document.getElementById('td-4grsrp').innerText = cols[6] || "-";
-                document.getElementById('td-4grsrq').innerText = cols[7] || "-";
-            } else if (type === "5G") {
-                document.getElementById('td-5gcell').innerText = `${cols[0]} ${cols[4]} 5G`;
-                document.getElementById('td-5grsrp').innerText = cols[8] || "-";
-                document.getElementById('td-5gsinr').innerText = cols[9] || "-";
-            }
-        }
-
-        // --- 2. ดึงข้อมูลที่อยู่ (ปรับปรุงให้ดึง 'ห้องเช่าเติมสุข' ได้) ---
-        
-        if (line.includes("Location/Building Detail :")) {
-            // แยกด้วยเครื่องหมาย : แล้วเอาตัวสุดท้าย
-            let parts = line.split("Location/Building Detail :");
-            let val = parts[1] ? parts[1].trim() : "";
-            
-            // ถ้าหลังเครื่องหมาย : เป็นช่องว่าง หรือขีด ให้เช็คบรรทัดถัดไป
-            if (!val || val === "-") {
-                if (lines[index + 1] && !lines[index + 1].includes(":")) {
-                    addr.bld = lines[index + 1].trim();
-                }
-            } else {
-                addr.bld = val;
-            }
-        }
-
-        if (line.includes("Address No. :")) {
-            let val = line.split("Address No. :")[1].split("Soi :")[0].trim();
-            addr.no = (val !== "-") ? val : "";
-            if (line.includes("Soi :")) {
-                addr.soi = line.split("Soi :")[1].trim();
-            }
-        }
-
-        if (line.includes("Road :")) {
-            let val = line.split("Road :")[1].split("Tumbol :")[0].trim();
-            addr.rd = (val !== "-") ? val : "";
-            if (line.includes("Tumbol :")) {
-                addr.tmb = line.split("Tumbol :")[1].trim();
-            }
-        }
-
-        if (line.includes("Amphur :")) {
-            let val = line.split("Amphur :")[1].split("Province :")[0].trim();
-            addr.amp = (val !== "-") ? val : "";
-            if (line.includes("Province :")) {
-                addr.prv = line.split("Province :")[1].trim();
-            }
-            
-            // ดึงจุดสังเกต (Landmark) บรรทัดถัดไป
-            if (lines[index + 1] && !lines[index + 1].includes(":") && lines[index+1] !== "-") {
-                addr.ldm = lines[index + 1].trim();
-            }
-        }
-    });
-
-    // --- 3. ประกอบร่างที่อยู่ ---
-    let formattedAddr = [];
-    if (addr.no && addr.no !== "-") formattedAddr.push(addr.no);
-    if (addr.bld && addr.bld !== "-") formattedAddr.push(addr.bld); 
-    if (addr.rd && addr.rd !== "-") formattedAddr.push("ถ." + addr.rd);
-    if (addr.soi && addr.soi !== "-") formattedAddr.push("ซ." + addr.soi);
-    if (addr.tmb && addr.tmb !== "-") formattedAddr.push("ต." + addr.tmb);
-    if (addr.amp && addr.amp !== "-") formattedAddr.push("อ." + addr.amp);
-    if (addr.prv && addr.prv !== "-") formattedAddr.push("จ." + addr.prv);
-    if (addr.ldm && addr.ldm !== "-") formattedAddr.push("(จุดสังเกต: " + addr.ldm + ")");
-
-    document.getElementById('td-address').innerText = formattedAddr.join(" ") || "-";
-}function parseCPData() {
-    const input = document.getElementById('cpRawInput').value;
-    if (!input) return;
-    
-    // แยกบรรทัดและตัดช่องว่างหัวท้ายของแต่ละบรรทัด
-    const lines = input.split('\n').map(l => l.trim());
-    let addr = { bld: "", no: "", soi: "", rd: "", tmb: "", amp: "", prv: "", ldm: "" };
-    
-    // ล้างค่าเก่าในตาราง
-    document.querySelectorAll('.cp-value-custom').forEach(td => td.innerText = "-");
-
-    lines.forEach((line, index) => {
-        // --- 1. ดึงข้อมูลสัญญาณและ IMSI ---
-        const cols = line.split(/\t| {2,}/).filter(c => c !== "");
-        if (cols.length >= 7) {
-            const type = cols[2]; 
-            if (type === "4G") {
-                document.getElementById('td-imsi').innerText = cols[1] ? cols[1].split('.')[0] : "-";
-                document.getElementById('td-4gcell').innerText = `${cols[0]} ${cols[4]} 4G`;
-                document.getElementById('td-4grsrp').innerText = cols[6] || "-";
-                document.getElementById('td-4grsrq').innerText = cols[7] || "-";
-            } else if (type === "5G") {
-                document.getElementById('td-5gcell').innerText = `${cols[0]} ${cols[4]} 5G`;
-                document.getElementById('td-5grsrp').innerText = cols[8] || "-";
-                document.getElementById('td-5gsinr').innerText = cols[9] || "-";
-            }
-        }
-
-        // --- 2. ดึงข้อมูลที่อยู่ (ปรับปรุงให้ดึง 'ห้องเช่าเติมสุข' ได้) ---
-        
-        if (line.includes("Location/Building Detail :")) {
-            // แยกด้วยเครื่องหมาย : แล้วเอาตัวสุดท้าย
-            let parts = line.split("Location/Building Detail :");
-            let val = parts[1] ? parts[1].trim() : "";
-            
-            // ถ้าหลังเครื่องหมาย : เป็นช่องว่าง หรือขีด ให้เช็คบรรทัดถัดไป
-            if (!val || val === "-") {
-                if (lines[index + 1] && !lines[index + 1].includes(":")) {
-                    addr.bld = lines[index + 1].trim();
-                }
-            } else {
-                addr.bld = val;
-            }
-        }
-
-        if (line.includes("Address No. :")) {
-            let val = line.split("Address No. :")[1].split("Soi :")[0].trim();
-            addr.no = (val !== "-") ? val : "";
-            if (line.includes("Soi :")) {
-                addr.soi = line.split("Soi :")[1].trim();
-            }
-        }
-
-        if (line.includes("Road :")) {
-            let val = line.split("Road :")[1].split("Tumbol :")[0].trim();
-            addr.rd = (val !== "-") ? val : "";
-            if (line.includes("Tumbol :")) {
-                addr.tmb = line.split("Tumbol :")[1].trim();
-            }
-        }
-
-        if (line.includes("Amphur :")) {
-            let val = line.split("Amphur :")[1].split("Province :")[0].trim();
-            addr.amp = (val !== "-") ? val : "";
-            if (line.includes("Province :")) {
-                addr.prv = line.split("Province :")[1].trim();
-            }
-            
-            // ดึงจุดสังเกต (Landmark) บรรทัดถัดไป
-            if (lines[index + 1] && !lines[index + 1].includes(":") && lines[index+1] !== "-") {
-                addr.ldm = lines[index + 1].trim();
-            }
-        }
-    });
-
-    // --- 3. ประกอบร่างที่อยู่ ---
-    let formattedAddr = [];
-    if (addr.no && addr.no !== "-") formattedAddr.push(addr.no);
-    if (addr.bld && addr.bld !== "-") formattedAddr.push(addr.bld); 
-    if (addr.rd && addr.rd !== "-") formattedAddr.push("ถ." + addr.rd);
-    if (addr.soi && addr.soi !== "-") formattedAddr.push("ซ." + addr.soi);
-    if (addr.tmb && addr.tmb !== "-") formattedAddr.push("ต." + addr.tmb);
-    if (addr.amp && addr.amp !== "-") formattedAddr.push("อ." + addr.amp);
-    if (addr.prv && addr.prv !== "-") formattedAddr.push("จ." + addr.prv);
-    if (addr.ldm && addr.ldm !== "-") formattedAddr.push("(จุดสังเกต: " + addr.ldm + ")");
-
-    document.getElementById('td-address').innerText = formattedAddr.join(" ") || "-";
-}function parseCPData() {
-    const input = document.getElementById('cpRawInput').value;
-    if (!input) return;
-    
-    // แยกบรรทัดและตัดช่องว่างหัวท้ายของแต่ละบรรทัด
-    const lines = input.split('\n').map(l => l.trim());
-    let addr = { bld: "", no: "", soi: "", rd: "", tmb: "", amp: "", prv: "", ldm: "" };
-    
-    // ล้างค่าเก่าในตาราง
-    document.querySelectorAll('.cp-value-custom').forEach(td => td.innerText = "-");
-
-    lines.forEach((line, index) => {
-        // --- 1. ดึงข้อมูลสัญญาณและ IMSI ---
-        const cols = line.split(/\t| {2,}/).filter(c => c !== "");
-        if (cols.length >= 7) {
-            const type = cols[2]; 
-            if (type === "4G") {
-                document.getElementById('td-imsi').innerText = cols[1] ? cols[1].split('.')[0] : "-";
-                document.getElementById('td-4gcell').innerText = `${cols[0]} ${cols[4]} 4G`;
-                document.getElementById('td-4grsrp').innerText = cols[6] || "-";
-                document.getElementById('td-4grsrq').innerText = cols[7] || "-";
-            } else if (type === "5G") {
-                document.getElementById('td-5gcell').innerText = `${cols[0]} ${cols[4]} 5G`;
-                document.getElementById('td-5grsrp').innerText = cols[8] || "-";
-                document.getElementById('td-5gsinr').innerText = cols[9] || "-";
-            }
-        }
-
-        // --- 2. ดึงข้อมูลที่อยู่ (ปรับปรุงให้ดึง 'ห้องเช่าเติมสุข' ได้) ---
-        
-        if (line.includes("Location/Building Detail :")) {
-            // แยกด้วยเครื่องหมาย : แล้วเอาตัวสุดท้าย
-            let parts = line.split("Location/Building Detail :");
-            let val = parts[1] ? parts[1].trim() : "";
-            
-            // ถ้าหลังเครื่องหมาย : เป็นช่องว่าง หรือขีด ให้เช็คบรรทัดถัดไป
-            if (!val || val === "-") {
-                if (lines[index + 1] && !lines[index + 1].includes(":")) {
-                    addr.bld = lines[index + 1].trim();
-                }
-            } else {
-                addr.bld = val;
-            }
-        }
-
-        if (line.includes("Address No. :")) {
-            let val = line.split("Address No. :")[1].split("Soi :")[0].trim();
-            addr.no = (val !== "-") ? val : "";
-            if (line.includes("Soi :")) {
-                addr.soi = line.split("Soi :")[1].trim();
-            }
-        }
-
-        if (line.includes("Road :")) {
-            let val = line.split("Road :")[1].split("Tumbol :")[0].trim();
-            addr.rd = (val !== "-") ? val : "";
-            if (line.includes("Tumbol :")) {
-                addr.tmb = line.split("Tumbol :")[1].trim();
-            }
-        }
-
-        if (line.includes("Amphur :")) {
-            let val = line.split("Amphur :")[1].split("Province :")[0].trim();
-            addr.amp = (val !== "-") ? val : "";
-            if (line.includes("Province :")) {
-                addr.prv = line.split("Province :")[1].trim();
-            }
-            
-            // ดึงจุดสังเกต (Landmark) บรรทัดถัดไป
-            if (lines[index + 1] && !lines[index + 1].includes(":") && lines[index+1] !== "-") {
-                addr.ldm = lines[index + 1].trim();
-            }
-        }
-    });
-
-    // --- 3. ประกอบร่างที่อยู่ ---
-    let formattedAddr = [];
-    if (addr.no && addr.no !== "-") formattedAddr.push(addr.no);
-    if (addr.bld && addr.bld !== "-") formattedAddr.push(addr.bld); 
-    if (addr.rd && addr.rd !== "-") formattedAddr.push("ถ." + addr.rd);
-    if (addr.soi && addr.soi !== "-") formattedAddr.push("ซ." + addr.soi);
-    if (addr.tmb && addr.tmb !== "-") formattedAddr.push("ต." + addr.tmb);
-    if (addr.amp && addr.amp !== "-") formattedAddr.push("อ." + addr.amp);
-    if (addr.prv && addr.prv !== "-") formattedAddr.push("จ." + addr.prv);
-    if (addr.ldm && addr.ldm !== "-") formattedAddr.push("(จุดสังเกต: " + addr.ldm + ")");
-
-    document.getElementById('td-address').innerText = formattedAddr.join(" ") || "-";
+        document.getElementById('td-address').innerText = formatted || "-";
+    }
 }
-// --- ฟังก์ชันสำหรับปุ่ม Clear ---
+// ฟังก์ชันล้างข้อมูล 3 ช่อง
 function clearCP() {
-    // 1. ล้างค่าในช่อง Textarea
-    const rawInput = document.getElementById('cpRawInput');
-    if (rawInput) rawInput.value = "";
+    document.getElementById('cpInput4G').value = "";
+    document.getElementById('cpInput5G').value = "";
+    document.getElementById('cpInputAddr').value = "";
+    document.querySelectorAll('.cp-value-custom').forEach(td => td.innerText = "-");
+}
+// ฟังก์ชันล้างข้อมูลทั้งหมด ทั้งในช่องกรอกและในตารางสรุป
+function clearCP() {
+    // 1. ล้างข้อมูลในช่อง Textarea ทั้ง 3 ช่อง
+    document.getElementById('cpInput4G').value = "";
+    document.getElementById('cpInput5G').value = "";
+    document.getElementById('cpInputAddr').value = "";
+
+    // 2. ล้างข้อมูลในตารางสรุปรายละเอียด (เปลี่ยนค่าเป็น "-" ทั้งหมด)
+    const tableCells = [
+        'td-imsi', 'td-4gcell', 'td-4grsrp', 'td-4grsrq', 
+        'td-5gcell', 'td-5grsrp', 'td-5gsinr', 'td-address'
+    ];
     
-    // 2. ล้างค่าในตาราง (ทุกช่องที่มีคลาส cp-value-custom)
-    const values = document.querySelectorAll('.cp-value-custom');
-    values.forEach(td => {
-        td.innerText = "-";
+    tableCells.forEach(id => {
+        const el = document.getElementById(id);
+        if (el) el.innerText = "-";
     });
-    
-    // แจ้งเตือนเล็กน้อย (เลือกใส่หรือไม่ก็ได้)
-    console.log("Cleared all CP data");
 }
 
 // --- ฟังก์ชันสำหรับปุ่ม Copy Table ---
