@@ -138,23 +138,27 @@
             </div>
         </div>
 
-        <div id="tab-cp" class="tab-content hidden-completely">
+        <div id="tab-cp" class="tab-content">
     <div class="glass-card">
-        <h6 class="fw-bold mb-3" style="color:var(--deep-orange)"><i class="fa-solid fa-bolt me-2"></i>Smart CP Splitter</h6>
+        <h6 class="fw-bold mb-3" style="color:var(--deep-orange)">
+            <i class="fa-solid fa-bolt me-2"></i>Smart CP Splitter
+        </h6>
         
-        <div class="mb-2">
-            <label class="small fw-bold text-primary">วางข้อมูล 4G ที่นี่:</label>
-            <textarea id="cpInput4G" class="form-control form-control-sm" rows="3" placeholder="วางข้อมูล 4G..." oninput="parseCPData()"></textarea>
-        </div>
+        <div class="row g-3 mb-4">
+            <div class="col-md-4">
+                <label class="small fw-bold text-primary">1. ข้อมูล 4G (IMSI บรรทัด 2 / Signal 7,8):</label>
+                <textarea id="cpInput4G" class="form-control form-control-sm" rows="5" placeholder="วางข้อมูล 4G..." oninput="parseCPData()"></textarea>
+            </div>
 
-        <div class="mb-2">
-            <label class="small fw-bold text-danger">วางข้อมูล 5G ที่นี่:</label>
-            <textarea id="cpInput5G" class="form-control form-control-sm" rows="3" placeholder="วางข้อมูล 5G..." oninput="parseCPData()"></textarea>
-        </div>
+            <div class="col-md-4">
+                <label class="small fw-bold text-danger">2. ข้อมูล 5G (Signal บรรทัด 9,10):</label>
+                <textarea id="cpInput5G" class="form-control form-control-sm" rows="5" placeholder="วางข้อมูล 5G..." oninput="parseCPData()"></textarea>
+            </div>
 
-        <div class="mb-3">
-            <label class="small fw-bold text-success">วางข้อมูลที่อยู่ (Address) ที่นี่:</label>
-            <textarea id="cpInputAddr" class="form-control form-control-sm" rows="3" placeholder="วางข้อมูลที่อยู่..." oninput="parseCPData()"></textarea>
+            <div class="col-md-4">
+                <label class="small fw-bold text-success">3. ข้อมูลที่อยู่ (Address):</label>
+                <textarea id="cpInputAddr" class="form-control form-control-sm" rows="5" placeholder="วางข้อมูลที่อยู่..." oninput="parseCPData()"></textarea>
+            </div>
         </div>
         
         <div class="table-responsive">
@@ -169,12 +173,24 @@
                     <tr><td class="cp-label-custom">5G Signal Strength :</td><td id="td-5grsrp" class="cp-value-custom">-</td></tr>
                     <tr><td class="cp-label-custom">5GSignal Quality :</td><td id="td-5gsinr" class="cp-value-custom">-</td></tr>
                     <tr><td class="cp-label-custom">ที่อยู่ (Address) :</td><td id="td-address" class="cp-value-custom">-</td></tr>
+                     <tr><td class="cp-label-custom">Remark :</td><td id="td-address" class="cp-value-custom">-</td></tr>
+                    <tr><td class="cp-label-custom">Arpu :</td><td id="td-address" class="cp-value-custom">-</td></tr>
+                    <tr><td class="cp-label-custom">Service Year :</td><td id="td-address" class="cp-value-custom">-</td></tr>
+                    <tr><td class="cp-label-custom">Package :</td><td id="td-address" class="cp-value-custom">-</td></tr>
+                    <tr><td class="cp-label-custom">Package Remaing :</td><td id="td-address" class="cp-value-custom">-</td></tr>
                 </tbody>
             </table>
         </div>
+
         <div class="row g-2 mt-3">
-            <div class="col-4"><button class="btn btn-light w-100 rounded-pill border fw-bold" onclick="clearCP()">ล้าง</button></div>
-            <div class="col-8"><button class="btn btn-warning w-100 rounded-pill text-white fw-bold shadow" onclick="copyCPTable()"><i class="fa-regular fa-copy me-2"></i>Copy Table</button></div>
+            <div class="col-4">
+                <button class="btn btn-light w-100 rounded-pill border fw-bold" onclick="clearCP()">ล้างข้อมูลทั้งหมด</button>
+            </div>
+            <div class="col-8">
+                <button class="btn btn-warning w-100 rounded-pill text-white fw-bold shadow" onclick="copyCPTable()">
+                    <i class="fa-regular fa-copy me-2"></i>Copy Table
+                </button>
+            </div>
         </div>
     </div>
 </div>
@@ -721,6 +737,7 @@ function renderDashTable(groups) {
     const val4G = document.getElementById('cpInput4G').value.trim();
     const val5G = document.getElementById('cpInput5G').value.trim();
     const valAddr = document.getElementById('cpInputAddr').value.trim();
+    
 
     // ฟังก์ชันล้างบรรทัดว่างออก เพื่อให้นับลำดับได้แม่นยำ
     const cleanLines = (text) => text.split('\n').map(l => l.trim()).filter(line => line.length > 0);
