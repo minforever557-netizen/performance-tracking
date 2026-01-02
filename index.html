@@ -132,6 +132,22 @@
         </div>
     </div>
 </nav>
+<div class="mx-2 mb-2 p-2 glass-card">
+    <div class="d-flex align-items-center justify-content-between flex-wrap">
+        <div class="small text-muted">
+            <i class="fas fa-info-circle"></i> ระบบจะ Archive ข้อมูลอัตโนมัติทุกวันเวลา 01:00 น.
+        </div>
+        
+        <div>
+            <button onclick="startArchiveProcess()" class="btn btn-sm btn-outline-warning">
+                <i class="fas fa-history"></i> เริ่มทำ Archive ย้อนหลัง (Manual)
+            </button>
+        </div>
+    </div>
+
+    <div id="archiveStatus" class="alert shadow-sm mt-2" style="display: none; font-size: 13px; border-radius: 10px;">
+        </div>
+</div>
     <div class="container">
         <div class="glass-card d-flex gap-1 p-1 mb-3" style="border-radius: 15px; overflow-x: auto;">
             <button id="nav-record" class="btn nav-btn active-btn" onclick="showTab('record')">บันทึก</button>
@@ -314,7 +330,7 @@
     // --- 1. CONFIG & GLOBALS ---
     const SCRIPT_URL = 'https://script.google.com/macros/s/AKfycbwQwqm_s6_0S6bcBX6xYXb8pLzxDJy5-m5AotyIV4f6uJPxYmTrmNkaXWQsGpk0PwY/exec';
     const MONTHS_TH = ["ม.ค.","ก.พ.","มี.ค.","เม.ย.","พ.ค.","มิ.ย.","ก.ค.","ส.ค.","ก.ย.","ต.ค.","พ.ย.","ธ.ค."];
-    let currentUser = "", allData = [], allPlans = [], chartInstance = null, currentChartType = 'bar';
+    let currentUser = "", allData = [], allArchive = [], allPlans = [], chartInstance = null, currentChartType = 'bar';
 
     // --- 2. AUTH ---
     async function login() {
@@ -343,19 +359,24 @@
     }
 
     // --- 3. DATA ENGINE ---
-    async function initData() {
+async function initData() {
     try {
         const res = await fetch(SCRIPT_URL);
         const json = await res.json();
-        allData = json.data.slice(1);
-        allPlans = json.plans.slice(1);
         
-        setupFilters(); // <--- ต้องมีบรรทัดนี้เพื่อสร้างรายการเดือน/วัน
+        allData = json.data ? json.data.slice(1) : [];
+        allArchive = json.archive || []; // เก็บข้อมูลจากรูปที่ 3 เข้าตัวแปรนี้
+        allPlans = json.plans ? json.plans.slice(1) : [];
+
+        // ลำดับสำคัญ: ต้องมีข้อมูลใน allArchive ก่อนถึงจะเรียก setupFilters
+        setupFilters(); 
+        
         updateHomeStats();
         updateHistory();
         renderPlanTable();
         
-        if (chartInstance) processDashboard();
+        // สั่งประมวลผล Dashboard
+        processDashboard(); 
     } catch(e) { console.error("Sync Error:", e); }
 }
 
@@ -438,268 +459,311 @@ myChart = new Chart(ctx, {
 // ฟังก์ชันตั้งค่าเริ่มต้น (เรียกครั้งเดียวตอนโหลดแอป)
 function setupFilters() {
     const selYear = document.getElementById('selYear');
-    if (selYear.options.length > 0) return; // ป้องกันการสร้างซ้ำ
-    
-    const curY = new Date().getFullYear();
-    // เพิ่มปีปัจจุบันและปีก่อนหน้า
-    [curY, curY - 1].forEach(y => selYear.add(new Option(y + 543, y)));
-    
-    // ตั้งค่าตัวเลือกวัน 1-31
     const selDay = document.getElementById('selDay');
+    if (!selYear || !selDay) return;
+
+    // 1. รวมวันที่จากทั้ง Data และ Archive เพื่อหาปีทั้งหมดที่มีในระบบ
+    // ตรวจสอบก่อนว่า allArchive มีค่าไหม ถ้าไม่มีให้เป็น Array ว่าง
+    const archiveForMap = (typeof allArchive !== 'undefined') ? allArchive : [];
+    
+    const allDates = [
+        ...allData.map(d => new Date(d[0])),
+        ...archiveForMap.map(d => new Date(d[0]))
+    ];
+
+    // หาปีที่ไม่ซ้ำกัน
+    let years = [...new Set(allDates.map(d => d.getFullYear()))]
+                .filter(y => !isNaN(y))
+                .sort((a, b) => b - a);
+
+    // ถ้าไม่มีข้อมูลเลย ให้ยึดปีปัจจุบันไว้ก่อน
+    const currentYear = new Date().getFullYear();
+    if (years.length === 0) years = [currentYear];
+
+    // ล้างและสร้างตัวเลือกปีใหม่
+    selYear.innerHTML = "";
+    years.forEach(y => {
+        const opt = new Option(y + 543, y);
+        // เลือกปีปัจจุบันเป็นค่าเริ่มต้น ถ้าไม่มีปีปัจจุบันให้เลือกปีล่าสุดที่มีในข้อมูล
+        if (y === currentYear || (years.length > 0 && y === years[0])) {
+            opt.selected = true;
+        }
+        selYear.add(opt);
+    });
+
+    // 2. สร้างตัวเลือกวัน (1-31)
     selDay.innerHTML = "";
     for (let d = 1; d <= 31; d++) {
-        const opt = new Option(d, d, false, true); // เลือกทั้งหมดเป็น default
-        selDay.add(opt);
+        // Option(text, value, defaultSelected, selected)
+        selDay.add(new Option(d, d, true, true));
     }
-    
-    // สำคัญ: เรียกสร้างเดือนทันที
+
+    // 3. เรียกฟังก์ชันสร้าง Filter เดือน/ไตรมาส และสั่งประมวลผลกราฟทันที
     updateDashFilters();
 }
 
 function updateDashFilters() {
     const type = document.getElementById('viewType').value;
     const selSub = document.getElementById('selSub');
-    const monthBox = document.getElementById('monthBox');
-    const dayBox = document.getElementById('dayBox');
     const lblSub = document.getElementById('lblSub');
+    const dayBox = document.getElementById('dayBox');
 
-    if (!selSub) return; // กัน Error ถ้าหา Element ไม่เจอ
+    if (!selSub) return;
+
+    // 1. ล้างข้อมูลเก่า
     selSub.innerHTML = "";
 
+    // 2. สร้างตัวเลือกใหม่ตามประเภทที่เลือก
     if (type === 'daily' || type === 'monthly') {
-        monthBox.classList.remove('hidden-completely');
-        lblSub.innerText = (type === 'daily') ? "เดือน" : "เลือกเดือน";
+        if (lblSub) lblSub.innerText = "เดือน";
         
-        // สร้าง Options รายชื่อเดือนจาก MONTHS_TH
-        MONTHS_TH.forEach((m, i) => {
-            // กรณีรายวัน ให้เลือกเดือนปัจจุบันไว้เดือนเดียว
-            // กรณีรายเดือน ให้เลือกทุกเดือนไว้ก่อน
-            const isSelected = (type === 'daily') ? (i === new Date().getMonth()) : true;
-            selSub.add(new Option(m, i + 1, false, isSelected));
-        });
-        
-        // ซ่อน/แสดง กล่องวันที่
-        dayBox.classList.toggle('hidden-completely', type === 'monthly');
-    } 
-    else if (type === 'quarterly') {
-        monthBox.classList.remove('hidden-completely');
-        dayBox.classList.add('hidden-completely');
-        lblSub.innerText = "ไตรมาส";
-        [1, 2, 3, 4].forEach(q => {
-            selSub.add(new Option(`Q${q}`, q, false, true));
-        });
-    }
-
-    processDashboard();
-}
-
-   async function saveWork() {
-    const inputs = document.querySelectorAll('.cat-input');
-    let items = [];
-    inputs.forEach(i => { 
-        const val = i.value.trim();
-        if(val) items.push({ cat: i.dataset.cat, id: val }); 
-    });
-    
-    if(!items.length) {
-        Swal.fire({ icon: 'warning', title: 'แจ้งเตือน', text: 'กรุณากรอก Case ID', timer: 1500, showConfirmButton: false });
-        return;
-    }
-    
-    // 1. แสดง Loading
-    Swal.fire({ 
-        title: 'กำลังบันทึก...', 
-        allowOutsideClick: false,
-        didOpen: () => { Swal.showLoading(); }
-    });
-
-    try {
-        const response = await fetch(SCRIPT_URL, { 
-            method: 'POST', 
-            body: JSON.stringify({ action: 'saveWork', user: currentUser, items }) 
-        });
-        
-        const result = await response.json();
-        
-        if (result.status === "success") {
-            // 2. ล้างค่าในช่อง Input ทันที
-            inputs.forEach(i => i.value = ""); 
-            
-            // 3. แจ้งเตือนสำเร็จ
-            Swal.fire({ 
-                icon: 'success', 
-                title: 'สำเร็จ', 
-                html: result.message,
-                timer: 1000, 
-                showConfirmButton: false 
+        // ใช้ MONTHS_TH (ตรวจสอบว่ามีตัวแปรนี้ประกาศไว้ด้านบนสุดของสคริปต์แล้ว)
+        if (typeof MONTHS_TH !== 'undefined') {
+            MONTHS_TH.forEach((m, i) => {
+                // Option(ข้อความโชว์, ค่า value, defaultSelected, selected)
+                const opt = new Option(m, i + 1, true, true); 
+                selSub.add(opt);
             });
-
-            // 4. อัปเดตข้อมูลทั้งหมด (รวมถึงหน้าสรุป Dashboard)
-            await initData(); // โหลดข้อมูลใหม่จาก Server
-            
-            if (typeof processDashboard === 'function') {
-                processDashboard(); // อัปเดตกราฟและตารางสรุปทันที
-            }
-            
-        } else {
-            Swal.fire({ icon: 'error', title: 'ไม่สำเร็จ', text: result.message });
         }
-    } catch(e) { 
-        console.error(e);
-        Swal.fire({ icon: 'error', title: 'Error', text: 'การเชื่อมต่อผิดพลาด', timer: 2000 }); 
+        
+        if (dayBox) dayBox.style.display = (type === 'daily') ? 'block' : 'none';
+
+    } else if (type === 'quarterly') {
+        if (lblSub) lblSub.innerText = "ไตรมาส";
+        [1, 2, 3, 4].forEach(q => {
+            const opt = new Option(`ไตรมาส ${q}`, q, true, true);
+            selSub.add(opt);
+        });
+        if (dayBox) dayBox.style.display = 'none';
     }
+
+    // 3. พิเศษ: ถ้าคุณใช้ Select2 หรือ Bootstrap Multiselect ต้องสั่ง Refresh ตรงนี้
+    // ถ้าไม่ได้ใช้ ให้ลบบรรทัดล่างนี้ออกได้ครับ
+    if (typeof $ !== 'undefined' && $(selSub).data('select2')) {
+        $(selSub).trigger('change');
+    }
+
+    // 4. สั่งคำนวณ Dashboard ใหม่
+    // ใช้ setTimeout เล็กน้อยเพื่อให้แน่ใจว่าค่าใน HTML ถูกเปลี่ยนเสร็จสมบูรณ์ก่อนคำนวณ
+    setTimeout(() => {
+        processDashboard();
+    }, 50);
 }
-
-function processDashboard() {
-    // 1. ดึงค่า Filter จากหน้า Dashboard
-    const type = document.getElementById('viewType').value;
-    const year = document.getElementById('selYear').value;
-    const sub = Array.from(document.getElementById('selSub').selectedOptions).map(o => parseInt(o.value));
-    const days = Array.from(document.getElementById('selDay').selectedOptions).map(o => parseInt(o.value));
-
-    // 2. ตั้งค่าวันที่วันนี้ (เวลาไทย)
-    const todayStr = new Date().toLocaleDateString('en-CA');
-    let todayStats = { cp: 0, call: 0, ir: 0, sr: 0, drop: 0, camp: 0, total: 0, target: 0 };
-    let groups = {};
-
-    // 3. ประมวลผลข้อมูล Actual
-    allData.forEach(d => {
-        const dt = new Date(d[0]);
-        const rowDateStr = dt.toLocaleDateString('en-CA');
-        const cat = d[2];
-        
-        if (d[1] !== currentUser) return;
-
-        // --- ส่วนหน้าบันทึก (วันนี้เท่านั้น) ---
-        if (rowDateStr === todayStr) {
-            todayStats.total++;
-            if (cat === "CP No.") todayStats.cp++;
-            else if (cat === "Call IN") todayStats.call++;
-            else if (cat === "IR") todayStats.ir++;
-            else if (cat === "SR") todayStats.sr++;
-            else if (cat === "Drop Call") todayStats.drop++;
-            else if (cat === "Campaign") todayStats.camp++;
-        }
-
-        // --- ส่วนหน้า Dashboard (กรองตามที่เลือก) ---
-        if (dt.getFullYear() != year) return;
-        const m = dt.getMonth() + 1;
-        const q = Math.ceil(m / 3);
-
-        if ((type === 'daily' || type === 'monthly') && !sub.includes(m)) return;
-        if (type === 'daily' && !days.includes(dt.getDate())) return;
-        if (type === 'quarterly' && !sub.includes(q)) return;
-
-        const key = type === 'daily' ? rowDateStr : (type === 'monthly' ? `${year}-${m}` : `Q${q}`);
-        
-        if (!groups[key]) {
-            groups[key] = { total: 0, target: 0, cp: 0, call: 0, ir: 0, sr: 0, drop: 0, camp: 0 };
-        }
-        
-        groups[key].total++;
-        if (cat === "CP No.") groups[key].cp++;
-        else if (cat === "Call IN") groups[key].call++;
-        else if (cat === "IR") groups[key].ir++;
-        else if (cat === "SR") groups[key].sr++;
-        else if (cat === "Drop Call") groups[key].drop++;
-        else if (cat === "Campaign") groups[key].camp++;
-    });
-
-    // 4. ประมวลผล Target
-    allPlans.forEach(p => {
-        const dt = new Date(p[0]);
-        const rowDateStr = dt.toLocaleDateString('en-CA');
-        if (p[1] !== currentUser || dt.getFullYear() != year) return;
-
-        const m = dt.getMonth() + 1;
-        const key = type === 'daily' ? rowDateStr : (type === 'monthly' ? `${year}-${m}` : `Q${Math.ceil(m/3)}`);
-        
-        if (rowDateStr === todayStr) todayStats.target = parseInt(p[3] || 0);
-        if (groups[key]) groups[key].target += parseInt(p[3] || 0);
-    });
-
-    updateTodayUI(todayStats);
-    renderChart(groups);
-    renderDashTable(groups);
-}
-
-// 1. ฟังก์ชันประมวลผลข้อมูลหลัก (เรียกใช้เพื่อ Update ข้อมูลทั้งหมด)
 function processDashboard() {
     const type = document.getElementById('viewType').value;
-    const year = document.getElementById('selYear').value;
+    const selectedYear = parseInt(document.getElementById('selYear').value);
+    const year = selectedYear > 2500 ? selectedYear - 543 : selectedYear; 
+
     const sub = Array.from(document.getElementById('selSub').selectedOptions).map(o => parseInt(o.value));
     const days = Array.from(document.getElementById('selDay').selectedOptions).map(o => parseInt(o.value));
-
-    const todayStr = new Date().toLocaleDateString('en-CA');
-    let todayStats = { cp: 0, call: 0, ir: 0, sr: 0, drop: 0, camp: 0, total: 0, target: 0 };
-    let groups = {};
-
-    // คำนวณ Actual
-    allData.forEach(d => {
-        const dt = new Date(d[0]);
-        const rowDateStr = dt.toLocaleDateString('en-CA');
-        if (d[1] !== currentUser) return;
-
-        // สำหรับหน้าบันทึกวันนี้
-        if (rowDateStr === todayStr) {
-            todayStats.total++;
-            const cat = d[2];
-            if (cat === "CP No.") todayStats.cp++;
-            else if (cat === "Call IN") todayStats.call++;
-            else if (cat === "IR") todayStats.ir++;
-            else if (cat === "SR") todayStats.sr++;
-            else if (cat === "Drop Call") todayStats.drop++;
-            else if (cat === "Campaign") todayStats.camp++;
-        }
-
-        // สำหรับหน้า Dashboard
-        if (dt.getFullYear() != year) return;
-        const m = dt.getMonth() + 1;
-        const q = Math.ceil(m / 3);
-        if ((type === 'daily' || type === 'monthly') && !sub.includes(m)) return;
-        if (type === 'daily' && !days.includes(dt.getDate())) return;
-        if (type === 'quarterly' && !sub.includes(q)) return;
-
-        const key = type === 'daily' ? rowDateStr : (type === 'monthly' ? `${year}-${m}` : `Q${q}`);
-        if (!groups[key]) groups[key] = { total: 0, target: 0, cp: 0, call: 0, ir: 0, sr: 0, drop: 0, camp: 0 };
-        
-        groups[key].total++;
-        const cat = d[2];
-        if (cat === "CP No.") groups[key].cp++;
-        else if (cat === "Call IN") groups[key].call++;
-        else if (cat === "IR") groups[key].ir++;
-        else if (cat === "SR") groups[key].sr++;
-        else if (cat === "Drop Call") groups[key].drop++;
-        else if (cat === "Campaign") groups[key].camp++;
-    });
-
-    // คำนวณ Target
-    allPlans.forEach(p => {
-        const dt = new Date(p[0]);
-        const rowDateStr = dt.toLocaleDateString('en-CA');
-        if (p[1] !== currentUser) return;
-
-        if (rowDateStr === todayStr) todayStats.target = parseInt(p[3] || 0);
-
-        if (dt.getFullYear() == year) {
-            const m = dt.getMonth() + 1;
-            const key = type === 'daily' ? rowDateStr : (type === 'monthly' ? `${year}-${m}` : `Q${Math.ceil(m/3)}`);
-            if (groups[key]) groups[key].target += parseInt(p[3] || 0);
-        }
-    });
-
-    // สั่ง Update UI แต่ละส่วน (ห้ามเขียน Logic คำนวณซ้ำในฟังก์ชันเหล่านี้)
-updateTodayUI(todayStats);
-    updateHistory(); 
     
-    // ตรวจสอบว่ามีข้อมูลใน groups ก่อนวาดกราฟ
-    if (typeof renderChart === "function") {
-        renderChart(groups); 
+
+    const todayStr = new Date().toLocaleDateString('en-CA');
+    let todayStats = { cp: 0, call: 0, ir: 0, sr: 0, drop: 0, camp: 0, total: 0, target: 0 };
+    let groups = {};
+
+    // Helper: ฟังก์ชันจัดการ Key ให้ตรงกันทุก Source
+    const generateKey = (dateObj) => {
+        const rowYear = dateObj.getFullYear();
+        const m = dateObj.getMonth() + 1;
+        const d = dateObj.getDate();
+        if (type === 'daily') return `${rowYear}-${String(m).padStart(2, '0')}-${String(d).padStart(2, '0')}`;
+        if (type === 'monthly') return `${rowYear}-${m}`;
+        return `Q${Math.ceil(m / 3)}`;
+    };
+
+    // --- 3. วนลูปข้อมูลจาก Data (ข้อมูลดิบวันนี้) ---
+    if (typeof allData !== 'undefined') {
+        allData.forEach((d, idx) => {
+            if (idx === 0 || !d[0] || !d[1]) return; // ข้าม Header และบรรทัดว่าง
+
+            const dt = new Date(d[0]);
+            if (isNaN(dt.getTime())) return;
+
+            // 🛡️ ปรับปรุงการเปรียบเทียบชื่อให้แม่นยำขึ้น (Exact Match + Trim)
+            const rowUser = d[1].toString().trim().toLowerCase();
+            const loginUser = currentUser.toString().trim().toLowerCase();
+            if (rowUser !== loginUser) return;
+
+            // ตรวจสอบปี
+            if (dt.getFullYear() !== year) return;
+
+            const rowDateStr = dt.toLocaleDateString('en-CA');
+            const cat = d[2] ? d[2].toString().trim() : "";
+            const m = dt.getMonth() + 1;
+            const q = Math.ceil(m / 3);
+
+            // Dashboard Filter
+            if ((type === 'daily' || type === 'monthly') && !sub.includes(m)) return;
+            if (type === 'daily' && !days.includes(dt.getDate())) return;
+            if (type === 'quarterly' && !sub.includes(q)) return;
+
+            const key = generateKey(dt);
+            if (!groups[key]) groups[key] = { total: 0, target: 0, cp: 0, call: 0, ir: 0, sr: 0, drop: 0, camp: 0 };
+
+            // สะสมยอดรายบรรทัด (Actual)
+            groups[key].total++;
+            if (cat === "CP No.") groups[key].cp++;
+            else if (cat === "Call IN") groups[key].call++;
+            else if (cat === "IR") groups[key].ir++;
+            else if (cat === "SR") groups[key].sr++;
+            else if (cat === "Drop Call") groups[key].drop++;
+            else if (cat === "Campaign") groups[key].camp++;
+
+            // อัปเดต Today Stats (เพื่อให้ยอด 84 เป็น 85)
+            if (rowDateStr === todayStr) {
+                todayStats.total++;
+                if (cat === "CP No.") todayStats.cp++;
+                else if (cat === "Call IN") todayStats.call++;
+                else if (cat === "IR") todayStats.ir++;
+                else if (cat === "SR") todayStats.sr++;
+                else if (cat === "Drop Call") todayStats.drop++;
+                else if (cat === "Campaign") todayStats.camp++;
+            }
+        });
     }
-    renderDashTable(groups);
+
+    // --- 4. แสดงผลและบังคับอัปเดตตัวเลขหน้าจอ ---
+    try {
+        updateTodayUI(todayStats);
+        renderChart(groups);
+        renderDashTable(groups);
+
+        // 🛡️ บังคับเขียนเลข Actual ลงในหน้าจอ (กรณีฟังก์ชัน updateTodayUI มี Error แฝง)
+        const actualLabel = document.getElementById('actualCount');
+        if (actualLabel) {
+            actualLabel.innerText = todayStats.total; // แสดงผลเป็น 85 ทันที
+        }
+        
+        // อัปเดตเวลา Auto Sync ล่าสุด
+        const syncDisplay = document.getElementById('autoSyncTime');
+        if (syncDisplay) {
+            syncDisplay.innerText = new Date().toLocaleTimeString('th-TH', { hour12: false });
+        }
+    } catch (e) {
+        console.warn("การแสดงผล UI บางส่วนขัดข้อง:", e); //
+    }
 }
+function processDashboard() {
+    // 1. เตรียมค่าพื้นฐาน
+    const viewTypeEl = document.getElementById('viewType');
+    const selYearEl = document.getElementById('selYear');
+    if (!viewTypeEl || !selYearEl) return;
+
+    const type = viewTypeEl.value;
+    const selectedYear = parseInt(selYearEl.value);
+    const year = selectedYear > 2500 ? selectedYear - 543 : selectedYear; 
+
+    const selectedMonths = Array.from(document.getElementById('selSub')?.selectedOptions || []).map(o => parseInt(o.value));
+    const selectedDays = Array.from(document.getElementById('selDay')?.selectedOptions || []).map(o => parseInt(o.value));
+
+    const todayStr = new Date().toLocaleDateString('en-CA');
+    let todayStats = { cp: 0, call: 0, ir: 0, sr: 0, drop: 0, camp: 0, total: 0, target: 0 };
+    let groups = {};
+
+    const generateKey = (dateObj) => {
+        const rowYear = dateObj.getFullYear();
+        const m = dateObj.getMonth() + 1;
+        const d = dateObj.getDate();
+        if (type === 'daily') return `${rowYear}-${String(m).padStart(2, '0')}-${String(d).padStart(2, '0')}`;
+        if (type === 'monthly') return `${rowYear}-${m}`;
+        return `Q${Math.ceil(m / 3)}`;
+    };
+
+    // --- ส่วนที่ 1: จัดการ Target จาก Plans ---
+    if (typeof allPlans !== 'undefined') {
+        allPlans.forEach(p => {
+            if (!p[0] || !p[1]) return;
+            const dt = new Date(p[0]);
+            // 🛡️ เช็คชื่อพนักงานแบบยืดหยุ่น (Trim + Case Insensitive)
+            if (isNaN(dt.getTime()) || p[1].toString().trim().toLowerCase() !== currentUser.trim().toLowerCase()) return;
+            if (dt.getFullYear() !== year) return;
+
+            const m = dt.getMonth() + 1;
+            const d = dt.getDate();
+            if (!selectedMonths.includes(m)) return;
+            if (type === 'daily' && selectedDays.length > 0 && !selectedDays.includes(d)) return;
+
+            const key = generateKey(dt);
+            if (!groups[key]) groups[key] = { total: 0, target: 0, cp: 0, call: 0, ir: 0, sr: 0, drop: 0, camp: 0 };
+            groups[key].target = Number(p[3] || 0);
+
+            if (dt.toLocaleDateString('en-CA') === todayStr) {
+                todayStats.target = Number(p[3] || 0);
+            }
+        });
+    }
+
+    // --- ส่วนที่ 2: จัดการข้อมูลจาก Archive & allData (Actual) ---
+    // รวมแหล่งข้อมูลเข้าด้วยกันเพื่อวนลูปทีเดียว ป้องกันยอดตกหล่น
+    const combinedData = [...(typeof allArchive !== 'undefined' ? allArchive : []), ...(typeof allData !== 'undefined' ? allData : [])];
+
+    combinedData.forEach((d, idx) => {
+        if (!d[0] || !d[1] || d[0] === "วันที่") return; // ข้าม Header และบรรทัดว่าง
+
+        const dt = new Date(d[0]);
+        if (isNaN(dt.getTime()) || d[1].toString().trim().toLowerCase() !== currentUser.trim().toLowerCase()) return;
+        if (dt.getFullYear() !== year) return;
+
+        const m = dt.getMonth() + 1;
+        const d_num = dt.getDate();
+        if (!selectedMonths.includes(m)) return;
+        if (type === 'daily' && selectedDays.length > 0 && !selectedDays.includes(d_num)) return;
+
+        const key = generateKey(dt);
+        if (!groups[key]) groups[key] = { total: 0, target: 0, cp: 0, call: 0, ir: 0, sr: 0, drop: 0, camp: 0 };
+
+        // เป็นข้อมูลสรุป (Archive) หรือ ข้อมูลรายบรรทัด (Data)
+        const isSummary = d.length > 5 && !isNaN(d[3]); // เช็คว่าเป็น Archive หรือไม่
+        
+        if (isSummary) {
+            groups[key].total += Number(d[3] || 0);
+            groups[key].cp    += Number(d[4] || 0);
+            groups[key].call  += Number(d[5] || 0);
+        } else {
+            // ข้อมูลรายบรรทัดจาก allData (วันนี้ที่มักจะเป็น 85)
+            groups[key].total++;
+            const cat = d[2];
+            if (cat === "CP No.") groups[key].cp++;
+            else if (cat === "Call IN") groups[key].call++;
+            else if (cat === "IR") groups[key].ir++;
+            else if (cat === "SR") groups[key].sr++;
+            else if (cat === "Drop Call") groups[key].drop++;
+            else if (cat === "Campaign") groups[key].camp++;
+        }
+
+        // อัปเดต Today Stats เฉพาะวันนี้
+        if (dt.toLocaleDateString('en-CA') === todayStr) {
+            if (isSummary) {
+                todayStats.total += Number(d[3] || 0);
+            } else {
+                todayStats.total++;
+                const cat = d[2];
+                if (cat === "CP No.") todayStats.cp++;
+                else if (cat === "Call IN") todayStats.call++;
+            }
+        }
+    });
+
+    // --- ส่วนที่ 3: อัปเดต UI ---
+    try {
+        updateTodayUI(todayStats);
+        renderChart(groups);
+        renderDashTable(groups);
+
+        // บังคับแสดงผลยอด 85 ลงใน Element
+        const actualCountEl = document.getElementById('actualCount');
+        if (actualCountEl) actualCountEl.innerText = todayStats.total;
+
+    } catch (e) {
+        console.warn("UI Update Error:", e);
+    }
+}
+
 // 2. ฟังก์ชันอัปเดต UI หน้าบันทึก และ Progress Bar ไล่สี
 function updateTodayUI(s) {
+    if (!s) return; // ป้องกัน Error ถ้าไม่มีข้อมูลส่งมา
+
     const badgeMap = { "badge-CP": s.cp, "badge-Call": s.call, "badge-IR": s.ir, "badge-SR": s.sr, "badge-Drop": s.drop, "badge-Camp": s.camp };
     for (let id in badgeMap) {
         if (document.getElementById(id)) document.getElementById(id).innerText = badgeMap[id] || 0;
@@ -715,34 +779,26 @@ function updateTodayUI(s) {
         balanceEl.style.color = balance < 0 ? "#dc3545" : (balance > 0 ? "#28a745" : "#ff9800");
     }
 
-    // เก็บชุดนี้ไว้ในฟังก์ชัน updateTodayUI หรือฟังก์ชันหลักที่ใช้อัปเดตหน้าจอ
-const percent = s.target > 0 ? Math.round((s.total / s.target) * 100) : 0;
+    // ส่วนของ Progress Bar (กลับมาใช้ 3 สีมาตรฐาน)
+    const percent = s.target > 0 ? Math.round((s.total / s.target) * 100) : 0;
     const bar = document.getElementById('goalProgress');
     
     if (bar) {
-        // 1. กำหนดความกว้าง (สูงสุดไม่เกิน 100% เพื่อไม่ให้แถบทะลุจอ)
         bar.style.width = Math.min(100, percent) + '%';
-        
-        // 2. แสดงตัวเลขเปอร์เซ็นต์จริง (เช่น 105%)
         bar.innerText = percent + '%';
         
-        // 3. เงื่อนไขการเปลี่ยนสี (Logic: แดง -> เหลือง -> เขียว)
-        if (percent <= 20) {
-            // ช่วงเริ่มต้น หรือทำได้น้อยมาก: สีแดง
-            bar.style.backgroundColor = "#dc3545"; 
-            bar.style.color = "white";
+        // ล้างสีเดิมออกก่อน
+        bar.className = "progress-bar-fill"; 
+        
+        if (percent <= 30) {
+            bar.style.backgroundColor = "#dc3545"; // แดง
         } else if (percent < 100) {
-            // ช่วงกำลังดำเนินการ: สีเหลือง/ส้ม (แบบที่คุณเห็นใน image_8c18d9.png)
-            bar.style.backgroundColor = "#ffc107"; 
+            bar.style.backgroundColor = "#ffc107"; // เหลือง
             bar.style.color = "black";
         } else {
-            // เมื่อถึงเป้าหมายหรือเกินเป้า: สีเขียว
-            bar.style.backgroundColor = "#28a745"; 
+            bar.style.backgroundColor = "#28a745"; // เขียว
             bar.style.color = "white";
         }
-
-        // ลบ Class เดิมของ Bootstrap เพื่อให้สีด้านบนทำงานได้แม่นยำ
-        bar.className = "progress-bar"; 
     }
 }
 
@@ -872,10 +928,26 @@ processDashboard(); // อัปเดตยอดรวมและ Dashboard
 updateHistory();    // อัปเดตรายการประวัติข้างล่างปุ่ม
 
     setInterval(() => {
-        const now = new Date();
-        document.getElementById('bigClock').innerText = now.toLocaleTimeString('th-TH', { hour12: false });
-        document.getElementById('todayDateLabel').innerText = now.toLocaleDateString('th-TH', { weekday:'long', day:'numeric', month:'long' });
-    }, 1000);
+    const now = new Date();
+    const timeStr = now.toLocaleTimeString('th-TH', { hour12: false });
+    const dateStr = now.toLocaleDateString('th-TH', { weekday:'long', day:'numeric', month:'long' });
+
+    // 1. อัปเดตนาฬิกา (ใช้ ID ให้ตรงกับที่คุณประกาศไว้ใน HTML คือ displayTime)
+    const clockEl = document.getElementById('displayTime');
+    if (clockEl) clockEl.innerText = timeStr;
+
+    // 2. อัปเดตวันที่ (ใช้ ID ให้ตรงกับที่คุณประกาศไว้ใน HTML คือ displayDate)
+    const dateEl = document.getElementById('displayDate');
+    if (dateEl) dateEl.innerText = dateStr;
+
+    // 3. ป้องกัน Error หากหา ID 'bigClock' หรือ 'todayDateLabel' ไม่เจอ
+    const bigClock = document.getElementById('bigClock');
+    if (bigClock) bigClock.innerText = timeStr;
+    
+    const dateLabel = document.getElementById('todayDateLabel');
+    if (dateLabel) dateLabel.innerText = dateStr;
+
+}, 1000);
 
     function changeChartType(t) {
         currentChartType = t;
@@ -998,47 +1070,86 @@ updateHistory();    // อัปเดตรายการประวัติ
 
 } // ปิดฟังก์ชัน parseCPData อย่างถูกต้อง
 
-// 1. ประกาศตัวแปรเก็บสถานะ Interval ไว้ด้านนอก
+// 1. ประกาศตัวแปร Global ไว้บนสุดของสคริปต์
 let autoSyncInterval = null;
 
-// ฟังก์ชันหลักที่ทำงานทุก 1 นาที
-function runAlwaysOnSync() {
-    parseCPData(); // ดึงข้อมูลจากช่อง Input เข้าตารางสรุป
+// 2. ฟังก์ชันหลักสำหรับ Sync และอัปเดต UI
+async function runAlwaysOnSync() {
+    try {
+        if (typeof parseCPData === 'function') parseCPData();
 
-    const now = new Date();
-    const timeStr = now.toLocaleTimeString('th-TH', { hour12: false });
-    const dateStr = now.toLocaleDateString('th-TH');
-    
-    // อัปเดตเวลาบนหน้าจอ
-    const display = document.getElementById('autoSyncTime');
-    if (display) {
-        display.innerText = `${dateStr} ${timeStr}`;
+        // ดักจับ Error เพื่อไม่ให้ระบบล่ม
+        if (typeof updateTodayUI === 'function') {
+            // เช็คตัวแปร 's' และ 'groups' ก่อนเรียกใช้เพื่อป้องกัน ReferenceError
+            if (typeof s !== 'undefined' && typeof groups !== 'undefined') {
+                updateTodayUI(s);
+                // หากมีการใช้ groups ให้ใส่ Logic ตรงนี้
+            } else {
+                console.log("รอข้อมูลสถานะงาน..."); //
+            }
+        }
+
+        const now = new Date();
+        const timeStr = now.toLocaleTimeString('th-TH', { hour: '2-digit', minute: '2-digit', hour12: false });
+        const dateStr = now.toLocaleDateString('th-TH');
+        
+        // อัปเดตเวลา Auto Sync ล่าสุดใน Navbar
+        const display = document.getElementById('autoSyncTime');
+        if (display) {
+            display.innerText = `${dateStr} ${timeStr}`;
+        }
+        
+    } catch (e) {
+        console.error("Sync Error:", e);
     }
 }
 
-// สั่งเริ่มทำงานทันทีเมื่อโหลดหน้าเว็บ
-window.addEventListener('load', () => {
+// 3. ฟังก์ชันเริ่มระบบ (เรียกใช้เพียงครั้งเดียว)
+function startManagementSystem() {
     runAlwaysOnSync(); // รันครั้งแรกทันที
-    if (!autoSyncInterval) {
-        autoSyncInterval = setInterval(runAlwaysOnSync, 60000); // วนลูปทุก 60 วินาที
-    }
-});
+
+    if (autoSyncInterval) clearInterval(autoSyncInterval);
+    autoSyncInterval = setInterval(runAlwaysOnSync, 60000); // ตั้งรอบ 1 นาที
+}
+
+// 4. ตั้งเวลานาฬิกาหลักให้เดินทุกวินาที (แยกส่วนเพื่อให้เข็มวินาทีเดินลื่น)
+setInterval(() => {
+    const timeEl = document.getElementById('displayTime');
+    if (timeEl) timeEl.innerText = new Date().toLocaleTimeString('th-TH', { hour12: false });
+}, 1000);
+
+// เริ่มทำงานเมื่อโหลดหน้าเสร็จ
+window.addEventListener('load', startManagementSystem);
 
 // ฟังก์ชันสำหรับเรียกใช้การ Sync และบันทึกเวลา
 function runSyncProcess() {
-    // 1. ประมวลผลดึงข้อมูล (ฟังก์ชันหลักของคุณ)
-    parseCPData(); // รันระบบดึงข้อมูล
+    // 1. ประมวลผลดึงข้อมูล
+    if (typeof parseCPData === 'function') {
+        parseCPData(); 
+    }
 
     const now = new Date();
     const timeStr = now.toLocaleTimeString('th-TH', { hour12: false });
     const dateStr = now.toLocaleDateString('th-TH');
     
-    // อัปเดตที่ Navbar จุดเดียว
+    // 2. อัปเดตที่ Navbar
     const display = document.getElementById('autoSyncTime');
     if (display) {
-        display.innerText = `${dateStr} ${timeStr}`;
+        display.innerText = `${dateStr} ${timeStr}`; // เปลี่ยนจาก "-" เป็นเวลาปัจจุบัน
     }
-}// <--- ต้องมีปีกกาปิดตรงนี้
+
+    // 3. บังคับอัปเดตนาฬิกาหลัก (แก้ปัญหาเวลาค้าง 00:00:00)
+    const mainTime = document.getElementById('displayTime');
+    if (mainTime) {
+        mainTime.innerText = timeStr;
+    }
+} // <--- ปีกกาปิดที่สำคัญมาก
+
+// --- ส่วนสั่งการทำงาน ---
+window.addEventListener('load', () => {
+    runSyncProcess(); // รันครั้งแรกทันทีที่โหลดหน้าเสร็จ
+    setInterval(runSyncProcess, 60000); // ตั้งให้ Sync ทุกๆ 1 นาที (60000 ms)
+});
 
 // ส่วนสั่งการทำงานอัตโนมัติ
 window.addEventListener('load', () => {
@@ -1196,22 +1307,26 @@ function updateHistory() {
         `;
     }).join('');
 }
-// ฟังก์ชันทำให้เวลาเดิน (Digital Clock)
+// ฟังก์ชันสำหรับอัปเดตวันที่และเวลาให้ตรงกับ HTML ID
 function updateClock() {
     const now = new Date();
-    const options = { weekday: 'long', day: 'numeric', month: 'long' };
     
-    // อัปเดตวันที่
-    const dateStr = now.toLocaleDateString('th-TH', options);
-    document.getElementById('displayDate').innerText = dateStr;
-    
-    // อัปเดตเวลา
-    const timeStr = now.toLocaleTimeString('th-TH', { hour12: false });
-    document.getElementById('displayTime').innerText = timeStr;
-}
+    // อัปเดตวันที่ (ID: displayDate)
+    const dateEl = document.getElementById('displayDate');
+    if (dateEl) {
+        const options = { year: 'numeric', month: 'long', day: 'numeric', weekday: 'long' };
+        dateEl.innerText = now.toLocaleDateString('th-TH', options);
+    }
 
-// เรียกใช้ Clock ทุก 1 วินาที
+    // อัปเดตเวลา (ID: displayTime)
+    const timeEl = document.getElementById('displayTime');
+    if (timeEl) {
+        timeEl.innerText = now.toLocaleTimeString('th-TH', { hour12: false });
+    }
+}
 setInterval(updateClock, 1000);
+updateClock();
+
 
 // 1. ฟังก์ชันแสดงรายการแผนงานทั้งหมดในตาราง
 function renderPlanTable() {
@@ -1277,7 +1392,127 @@ async function saveNewPlan() {
         Swal.fire({ icon: 'error', title: 'Error', text: 'บันทึกไม่สำเร็จ' });
     }
 }
+function startArchiveProcess() {
+    const statusDiv = document.getElementById('archiveStatus');
+    statusDiv.style.display = 'block'; 
+    statusDiv.innerHTML = '⌛ กำลังดำเนินการ...';
+    statusDiv.className = "alert alert-info border-0 shadow-sm";
 
+    google.script.run
+      .withSuccessHandler(function(msg) {
+        // ตรวจสอบข้อความที่ส่งมาจาก Server
+        if (msg === "ดำเนินการสำเร็จ") {
+            statusDiv.innerHTML = '<i class="fas fa-check-circle"></i> ดำเนินการสำเร็จ';
+            statusDiv.className = "alert alert-success border-0 shadow-sm text-success";
+            
+            // อัปเดตหน้าจอ Dashboard
+            if (typeof processDashboard === "function") processDashboard(); 
+            
+            // ซ่อนข้อความอัตโนมัติหลังจาก 3 วินาที
+            setTimeout(() => { statusDiv.style.display = 'none'; }, 3000);
+        } else {
+            // กรณีอื่นๆ เช่น ไม่มีข้อมูล หรือดำเนินการไม่สำเร็จ
+            statusDiv.innerHTML = '<i class="fas fa-exclamation-circle"></i> ' + msg;
+            statusDiv.className = "alert alert-warning border-0 shadow-sm";
+        }
+      })
+      .withFailureHandler(function(err) {
+        statusDiv.innerHTML = '<i class="fas fa-times-circle"></i> ดำเนินการไม่สำเร็จ';
+        statusDiv.className = "alert alert-danger border-0 shadow-sm";
+      })
+      .archiveAndCleanupDaily();
+}
+async function saveWork() {
+    const inputs = document.querySelectorAll('.cat-input');
+    let items = [];
+    inputs.forEach(i => { 
+        const val = i.value.trim();
+        if(val) items.push({ cat: i.dataset.cat, id: val }); 
+    });
+    
+    if(!items.length) {
+        Swal.fire({ icon: 'warning', title: 'แจ้งเตือน', text: 'กรุณากรอก Case ID', timer: 1500, showConfirmButton: false });
+        return;
+    }
+    
+    Swal.fire({ 
+        title: 'กำลังบันทึก...', 
+        allowOutsideClick: false,
+        didOpen: () => { Swal.showLoading(); }
+    });
+
+    try {
+        const response = await fetch(SCRIPT_URL, { 
+            method: 'POST', 
+            body: JSON.stringify({ action: 'saveWork', user: currentUser, items }) 
+        });
+        
+        const result = await response.json();
+        
+        if (result.status === "success") {
+            inputs.forEach(i => i.value = ""); 
+            
+            Swal.fire({ icon: 'success', title: 'สำเร็จ', html: result.message, timer: 1000, showConfirmButton: false });
+
+            // --- 🚀 ส่วนที่เพิ่ม: อัปเดตเวลา Auto Sync ล่าสุด ---
+            const syncTime = new Date().toLocaleTimeString('th-TH', { hour: '2-digit', minute: '2-digit', second: '2-digit' });
+            const syncElement = document.querySelector('.text-end small'); 
+            if (syncElement) {
+                syncElement.innerHTML = `<i class="bi bi-arrow-repeat"></i> Auto Sync ล่าสุด: ${syncTime}`;
+            }
+
+            await initData(); 
+            
+            if (typeof processDashboard === 'function') {
+                processDashboard(); 
+            }
+            
+        } else {
+            Swal.fire({ icon: 'error', title: 'ไม่สำเร็จ', text: result.message });
+        }
+    } catch(e) { 
+        console.error(e);
+        Swal.fire({ icon: 'error', title: 'Error', text: 'การเชื่อมต่อผิดพลาด', timer: 2000 }); 
+    }
+}
+function startClock() {
+        const update = () => {
+            const now = new Date();
+            const dateEl = document.getElementById('displayDate');
+            const timeEl = document.getElementById('displayTime');
+
+            if (dateEl) {
+                dateEl.innerText = now.toLocaleDateString('th-TH', {
+                    weekday: 'long', year: 'numeric', month: 'long', day: 'numeric'
+                });
+            }
+            if (timeEl) {
+                timeEl.innerText = now.toLocaleTimeString('th-TH', {
+                    hour: '2-digit', minute: '2-digit', second: '2-digit', hour12: false
+                });
+            }
+        };
+        setInterval(update, 1000);
+        update();
+    }
+    // เรียกใช้ทันที
+    startClock();
+</script>
+<script>
+    (function() {
+        function updateAll() {
+            const now = new Date();
+            const dateEl = document.getElementById('displayDate');
+            const timeEl = document.getElementById('displayTime');
+            
+            if (dateEl) dateEl.innerText = now.toLocaleDateString('th-TH', { 
+                weekday: 'long', day: 'numeric', month: 'long', year: 'numeric' 
+            });
+            if (timeEl) timeEl.innerText = now.toLocaleTimeString('th-TH', { hour12: false });
+        }
+        setInterval(updateAll, 1000);
+        updateAll();
+    })();
 </script>
 </body>
 </html>
