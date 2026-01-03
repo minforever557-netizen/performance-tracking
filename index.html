@@ -554,22 +554,23 @@ function updateDashFilters() {
     }, 50);
 }
 function processDashboard() {
-    // 1. เตรียมค่าพื้นฐาน
+    // 1. ตรวจสอบความพร้อมของ Element และข้อมูลพื้นฐาน
     const viewTypeEl = document.getElementById('viewType');
     const selYearEl = document.getElementById('selYear');
-    if (!viewTypeEl || !selYearEl) return;
+    // เพิ่มการเช็ค currentUser ถ้าไม่มีให้หยุดก่อนเพื่อป้องกัน Error
+    if (!viewTypeEl || !selYearEl || typeof currentUser === 'undefined' || !currentUser) return;
 
     const type = viewTypeEl.value;
     const selectedYear = parseInt(selYearEl.value);
     const year = selectedYear > 2500 ? selectedYear - 543 : selectedYear; 
     
-    // ดึงค่าเดือนและวัน (ตรวจสอบว่ามีการเลือกจริงหรือไม่)
+    // ดึงค่าเดือนและวัน (ใช้ค่าเริ่มต้นเป็น Array ว่างถ้าหา Element ไม่เจอ)
     const selectedMonths = Array.from(document.getElementById('selSub')?.selectedOptions || []).map(o => parseInt(o.value));
     const selectedDays = Array.from(document.getElementById('selDay')?.selectedOptions || []).map(o => parseInt(o.value));
 
-    // 🚩 กฎเหล็ก: หากไม่มีการเลือก เดือน หรือ วัน (ในโหมดรายวัน) ให้ล้างหน้าจอทันที
+    // 🚩 กฎเหล็ก: ล้างหน้าจอถ้าไม่เลือกเงื่อนไขให้ครบ
     if (selectedMonths.length === 0 || (type === 'daily' && selectedDays.length === 0)) {
-        clearDashboardUI();
+        if (typeof clearDashboardUI === 'function') clearDashboardUI();
         return;
     }
 
@@ -581,38 +582,46 @@ function processDashboard() {
         const rowYear = dateObj.getFullYear();
         const m = dateObj.getMonth() + 1;
         const d = dateObj.getDate();
-        // 🛡️ ใช้ Format YYYY-MM-DD เป็นมาตรฐานเพื่อป้องกัน Key ซ้ำซ้อน
         if (type === 'daily') return `${rowYear}-${String(m).padStart(2, '0')}-${String(d).padStart(2, '0')}`;
         if (type === 'monthly') return `${rowYear}-${String(m).padStart(2, '0')}`;
         return `Q${Math.ceil(m / 3)}`;
     };
 
-    // --- ส่วนที่ 1: จัดการ Target จาก Plans (เน้นกรองเฉพาะวันที่เลือกเท่านั้น) ---
-    if (typeof allPlans !== 'undefined') {
-        allPlans.forEach(p => {
-            if (!p[0] || !p[1]) return;
-            const dt = new Date(p[0]);
-            if (isNaN(dt.getTime()) || p[1].toString().trim().toLowerCase() !== currentUser.trim().toLowerCase()) return;
-            if (dt.getFullYear() !== year) return;
+    // --- ส่วนที่ 1: จัดการ Target (แก้ไขเป็นแบบบวกสะสม) ---
+if (typeof allPlans !== 'undefined' && allPlans) {
+    allPlans.forEach(p => {
+        if (!p[0] || !p[1]) return;
+        const dt = new Date(p[0]);
+        
+        if (isNaN(dt.getTime()) || p[1].toString().trim().toLowerCase() !== currentUser.trim().toLowerCase()) return;
+        if (dt.getFullYear() !== year) return;
 
-            const m = dt.getMonth() + 1;
-            const d_num = dt.getDate();
+        const m = dt.getMonth() + 1;
+        if (!selectedMonths.includes(m)) return;
+        if (type === 'daily' && !selectedDays.includes(dt.getDate())) return;
+        
+        const key = generateKey(dt);
+        if (!groups[key]) {
+            groups[key] = { total: 0, target: 0, cp: 0, call: 0, ir: 0, sr: 0, drop: 0, camp: 0, caseIds: new Set() };
+        }
 
-            // 🛡️ ตรวจสอบเงื่อนไขวันที่เลือก
-            if (!selectedMonths.includes(m)) return;
-            if (type === 'daily' && !selectedDays.includes(d_num)) return;
-            
-            const key = generateKey(dt);
-            if (!groups[key]) {
-                groups[key] = { total: 0, target: 0, cp: 0, call: 0, ir: 0, sr: 0, drop: 0, camp: 0, caseIds: new Set() };
-            }
-            groups[key].target = Number(p[3] || 0);
-            if (dt.toLocaleDateString('en-CA') === todayStr) todayStats.target = Number(p[3] || 0);
-        });
-    }
+        // ✅ แก้ไข: เปลี่ยนจาก = เป็น += เพื่อรวม Target ทุกวันเข้าด้วยกันใน Key เดียวกัน (รายเดือน/รายไตรมาส)
+        const val = Number(p[3] || 0);
+        groups[key].target += val;
 
-    // --- ส่วนที่ 2: จัดการ Actual (นับเฉพาะ Unique Case ID ในวันที่เลือก) ---
-    const combinedData = [...(typeof allArchive !== 'undefined' ? allArchive : []), ...(typeof allData !== 'undefined' ? allData : [])];
+        // สำหรับสถิติรายวัน (Today)
+        if (dt.toLocaleDateString('en-CA') === todayStr) {
+            todayStats.target = val; 
+        }
+    });
+}
+
+    // --- ส่วนที่ 2: จัดการ Actual ---
+    const combinedData = [
+        ...(typeof allArchive !== 'undefined' ? allArchive : []), 
+        ...(typeof allData !== 'undefined' ? allData : [])
+    ];
+
     combinedData.forEach((d, idx) => {
         if (!d[0] || !d[1] || d[0] === "วันที่") return;
         const dt = new Date(d[0]);
@@ -620,19 +629,15 @@ function processDashboard() {
         if (dt.getFullYear() !== year) return;
 
         const m = dt.getMonth() + 1;
-        const d_num = dt.getDate();
-
-        // 🛡️ ตรวจสอบเงื่อนไขวันที่เลือก (Actual ต้องตรงกับ Target ในส่วนที่ 1)
         if (!selectedMonths.includes(m)) return;
-        if (type === 'daily' && !selectedDays.includes(d_num)) return;
+        if (type === 'daily' && !selectedDays.includes(dt.getDate())) return;
 
         const key = generateKey(dt);
-        // สร้าง Object ใหม่หากวันนั้นมี Actual แต่ไม่มีการตั้ง Target ไว้ใน Plans
         if (!groups[key]) {
             groups[key] = { total: 0, target: 0, cp: 0, call: 0, ir: 0, sr: 0, drop: 0, camp: 0, caseIds: new Set() };
         }
 
-        const isSummary = d.length > 5 && !isNaN(d[3]); 
+        const isSummary = d.length > 5 && !isNaN(d[3]) && d[3] !== ""; 
         if (isSummary) {
             groups[key].total += Number(d[3] || 0);
             groups[key].cp    += Number(d[4] || 0);
@@ -662,34 +667,24 @@ function processDashboard() {
         }
     });
 
-    // --- ส่วนที่ 3: อัปเดต UI ---
-    try {
-        updateTodayUI(todayStats);
-        
-        const validKeys = Object.keys(groups);
-        if (validKeys.length > 0) {
-            renderChart(groups); //
-            renderDashTable(groups); 
-        } else {
-            clearDashboardUI();
-        }
+    // --- ส่วนที่ 3: อัปเดต UI (เพิ่มความหน่วงเพื่อให้แน่ใจว่า DOM พร้อม) ---
+    requestAnimationFrame(() => {
+        try {
+            if (typeof updateTodayUI === 'function') updateTodayUI(todayStats);
+            
+            const validKeys = Object.keys(groups);
+            if (validKeys.length > 0) {
+                if (typeof renderChart === 'function') renderChart(groups);
+                if (typeof renderDashTable === 'function') renderDashTable(groups); 
+            } else {
+                if (typeof clearDashboardUI === 'function') clearDashboardUI();
+            }
 
-        const actualCountEl = document.getElementById('actualCount');
-        if (actualCountEl) actualCountEl.innerText = todayStats.total;
-    } catch (e) { console.warn("UI Error:", e); }
-}
-
-// 🛡️ แก้ไขปัญหา ReferenceError: toggleSelect is not defined
-function toggleSelect(id, action) {
-    const el = document.getElementById(id);
-    if (!el) return;
-    for (let i = 0; i < el.options.length; i++) {
-        el.options[i].selected = (action === 'all');
-    }
-    processDashboard(); // อัปเดตกราฟทันทีหลังกดเลือก
-}
-
-function clearDashboardUI() {
+            const actualCountEl = document.getElementById('actualCount');
+            if (actualCountEl) actualCountEl.innerText = todayStats.total;
+        } catch (e) { console.warn("UI Update Error:", e); }
+    });
+}function clearDashboardUI() {
     const tbody = document.getElementById('dashTableBody');
     if (tbody) tbody.innerHTML = '<tr><td colspan="10" class="text-center text-muted">กรุณาเลือกวันที่ต้องการดูข้อมูล</td></tr>';
     if (typeof renderChart === 'function') renderChart({}); 
@@ -1080,45 +1075,81 @@ setInterval(() => {
     if (timeEl) timeEl.innerText = new Date().toLocaleTimeString('th-TH', { hour12: false });
 }, 1000);
 
-// เริ่มทำงานเมื่อโหลดหน้าเสร็จ
-window.addEventListener('load', startManagementSystem);
+/**
+ * ==========================================
+ * 🚀 SINGLE ENTRY POINT (จุดรันระบบจุดเดียว)
+ * ==========================================
+ */
+window.addEventListener('load', () => {
+    // 1. เริ่มรันนาฬิกา (รันได้เลยไม่ต้องรอ Login)
+    startClock(); 
 
-// ฟังก์ชันสำหรับเรียกใช้การ Sync และบันทึกเวลา
+    // 2. ตรวจสอบสถานะการทำงาน
+    // ถ้ามีการ Login ค้างไว้ หรือ Login สำเร็จ ให้เริ่มระบบจัดการ
+    if (typeof currentUser !== 'undefined' && currentUser) {
+        startManagementSystem();
+    }
+});
+
+/**
+ * ==========================================
+ * 🔄 REFACTORED: runSyncProcess
+ * ==========================================
+ * 🔄 runSyncProcess: อัปเดตเวลาและรันระบบ Sync
+ */
 function runSyncProcess() {
-    // 1. ประมวลผลดึงข้อมูล
-    if (typeof parseCPData === 'function') {
-        parseCPData(); 
-    }
-
+    // --- 1. ส่วนอัปเดตเวลา (ทำงานทันที) ---
     const now = new Date();
-    const timeStr = now.toLocaleTimeString('th-TH', { hour12: false });
-    const dateStr = now.toLocaleDateString('th-TH');
-    
-    // 2. อัปเดตที่ Navbar
-    const display = document.getElementById('autoSyncTime');
-    if (display) {
-        display.innerText = `${dateStr} ${timeStr}`; // เปลี่ยนจาก "-" เป็นเวลาปัจจุบัน
+    const shortTime = now.toLocaleTimeString('th-TH', { hour12: false });
+    const fullDate = now.toLocaleDateString('th-TH');
+
+    const elAuto = document.getElementById('autoSyncTime');
+    if (elAuto) elAuto.innerText = `${fullDate} ${shortTime}`;
+
+    const elMain = document.getElementById('displayTime');
+    if (elMain) elMain.innerText = shortTime;
+
+    // --- 2. ส่วนประมวลผลข้อมูล ---
+    try {
+        if (typeof currentUser !== 'undefined' && currentUser) {
+            // ดึงข้อมูลใหม่
+            if (typeof parseCPData === 'function') parseCPData();
+
+            // ✅ แก้ไข: รอให้ข้อมูล Set ตัว 300ms แล้วค่อยคำนวณกราฟ
+            setTimeout(() => {
+                if (typeof processDashboard === 'function') {
+                    console.log("Refreshing Dashboard with new data...");
+                    processDashboard(); 
+                }
+            }, 300);
+        }
+    } catch (err) {
+        console.warn("Sync Data Waiting...");
     }
+}
 
-    // 3. บังคับอัปเดตนาฬิกาหลัก (แก้ปัญหาเวลาค้าง 00:00:00)
-    const mainTime = document.getElementById('displayTime');
-    if (mainTime) {
-        mainTime.innerText = timeStr;
-    }
-} // <--- ปีกกาปิดที่สำคัญมาก
-
-// --- ส่วนสั่งการทำงาน ---
+/**
+ * 🚀 ส่วนสั่งการทำงานเมื่อโหลดหน้าจอ (Event Listener)
+ */
 window.addEventListener('load', () => {
-    runSyncProcess(); // รันครั้งแรกทันทีที่โหลดหน้าเสร็จ
-    setInterval(runSyncProcess, 60000); // ตั้งให้ Sync ทุกๆ 1 นาที (60000 ms)
-});
-
-// ส่วนสั่งการทำงานอัตโนมัติ
-window.addEventListener('load', () => {
+    // รันแสดงเวลาทันที
     runSyncProcess();
-    setInterval(runSyncProcess, 60000); // ทำงานทุก 1 นาที
+    
+    // ตั้งเวลา 1 นาที (เช็ค Timer เดิมก่อนสร้างใหม่ป้องกันซ้ำ)
+    if (!window.syncInterval) {
+        window.syncInterval = setInterval(runSyncProcess, 60000);
+    }
+    console.log("System Timer Started.");
 });
 
+/**
+ * ⚙️ startManagementSystem: เรียกใช้เมื่อ Login สำเร็จ
+ */
+function startManagementSystem() {
+    runSyncProcess();
+    if (window.syncTimer) clearInterval(window.syncTimer);
+    window.syncTimer = setInterval(runSyncProcess, 60000);
+}
 
 function clearCP() {
     // 1. ล้างข้อมูลในช่อง Textarea ทั้ง 3 ช่องทันที
