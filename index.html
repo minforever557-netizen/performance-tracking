@@ -132,22 +132,6 @@
         </div>
     </div>
 </nav>
-<div class="mx-2 mb-2 p-2 glass-card">
-    <div class="d-flex align-items-center justify-content-between flex-wrap">
-        <div class="small text-muted">
-            <i class="fas fa-info-circle"></i> ระบบจะ Archive ข้อมูลอัตโนมัติทุกวันเวลา 01:00 น.
-        </div>
-        
-        <div>
-            <button onclick="startArchiveProcess()" class="btn btn-sm btn-outline-warning">
-                <i class="fas fa-history"></i> เริ่มทำ Archive ย้อนหลัง (Manual)
-            </button>
-        </div>
-    </div>
-
-    <div id="archiveStatus" class="alert shadow-sm mt-2" style="display: none; font-size: 13px; border-radius: 10px;">
-        </div>
-</div>
     <div class="container">
         <div class="glass-card d-flex gap-1 p-1 mb-3" style="border-radius: 15px; overflow-x: auto;">
             <button id="nav-record" class="btn nav-btn active-btn" onclick="showTab('record')">บันทึก</button>
@@ -418,13 +402,33 @@ myChart = new Chart(ctx, {
                     color: function(context) {
                         const index = context.dataIndex;
                         const actual = context.dataset.data[index];
-                        const target = targetData[index];
+                         const target = targetData[index];
                         const pct = target > 0 ? (actual / target) * 100 : 0;
 
-                        if (pct <= 20) return '#dc3545'; // สีแดง
-                        if (pct < 100) return '#cc9a06'; // สีเหลืองเข้ม (ให้อ่านง่ายบนพื้นขาว)
-                        return '#28a745'; // สีเขียว
-                    }
+                            // --- ไล่ระดับสีทุก 5% ---
+                                if (pct <= 5)   return '#8B0000'; // แดงมืดมาก (Dark Red)
+                                if (pct <= 10)  return '#A52A2A'; // แดงน้ำตาล
+                                if (pct <= 15)  return '#B22222'; // แดงเพลิง
+                                if (pct <= 20)  return '#DC3545'; // แดงมาตรฐาน
+                                if (pct <= 25)  return '#E35D6A'; // แดงชมพู
+                                if (pct <= 30)  return '#EA868F'; // แดงอ่อน
+                                if (pct <= 35)  return '#F1AFB5'; // แดงพาสเทล
+                                if (pct <= 40)  return '#F8D7DA'; // แดงจางมาก
+                                if (pct <= 45)  return '#FF8C00'; // ส้มเข้ม
+                                if (pct <= 50)  return '#FD7E14'; // ส้มมาตรฐาน
+                                if (pct <= 55)  return '#FFA500'; // ส้มทอง
+                                if (pct <= 60)  return '#FFB347'; // ส้มพาสเทล
+                                if (pct <= 65)  return '#CC9A06'; // เหลืองเข้ม (Gold)
+                                if (pct <= 70)  return '#D4A017'; // เหลืองทอง
+                                if (pct <= 75)  return '#E1B12C'; // เหลืองมัสตาร์ด
+                                if (pct <= 80)  return '#F1C40F'; // เหลืองสว่าง
+                                if (pct <= 85)  return '#F4D03F'; // เหลืองอ่อน
+                                if (pct <= 90)  return '#F7DC6F'; // เหลืองจาง
+                                if (pct <= 95)  return '#D4EFDF'; // เขียวอ่อนมาก
+                                if (pct < 100)  return '#A9DFBF'; // เขียวมิ้นต์
+    
+                                return '#28A745'; // 100% ขึ้นไป: สีเขียว (ยอด 104% ของคุณจะเป็นสีนี้)
+                        }
                 }
             },
             {
@@ -550,101 +554,6 @@ function updateDashFilters() {
     }, 50);
 }
 function processDashboard() {
-    const type = document.getElementById('viewType').value;
-    const selectedYear = parseInt(document.getElementById('selYear').value);
-    const year = selectedYear > 2500 ? selectedYear - 543 : selectedYear; 
-
-    const sub = Array.from(document.getElementById('selSub').selectedOptions).map(o => parseInt(o.value));
-    const days = Array.from(document.getElementById('selDay').selectedOptions).map(o => parseInt(o.value));
-    
-
-    const todayStr = new Date().toLocaleDateString('en-CA');
-    let todayStats = { cp: 0, call: 0, ir: 0, sr: 0, drop: 0, camp: 0, total: 0, target: 0 };
-    let groups = {};
-
-    // Helper: ฟังก์ชันจัดการ Key ให้ตรงกันทุก Source
-    const generateKey = (dateObj) => {
-        const rowYear = dateObj.getFullYear();
-        const m = dateObj.getMonth() + 1;
-        const d = dateObj.getDate();
-        if (type === 'daily') return `${rowYear}-${String(m).padStart(2, '0')}-${String(d).padStart(2, '0')}`;
-        if (type === 'monthly') return `${rowYear}-${m}`;
-        return `Q${Math.ceil(m / 3)}`;
-    };
-
-    // --- 3. วนลูปข้อมูลจาก Data (ข้อมูลดิบวันนี้) ---
-    if (typeof allData !== 'undefined') {
-        allData.forEach((d, idx) => {
-            if (idx === 0 || !d[0] || !d[1]) return; // ข้าม Header และบรรทัดว่าง
-
-            const dt = new Date(d[0]);
-            if (isNaN(dt.getTime())) return;
-
-            // 🛡️ ปรับปรุงการเปรียบเทียบชื่อให้แม่นยำขึ้น (Exact Match + Trim)
-            const rowUser = d[1].toString().trim().toLowerCase();
-            const loginUser = currentUser.toString().trim().toLowerCase();
-            if (rowUser !== loginUser) return;
-
-            // ตรวจสอบปี
-            if (dt.getFullYear() !== year) return;
-
-            const rowDateStr = dt.toLocaleDateString('en-CA');
-            const cat = d[2] ? d[2].toString().trim() : "";
-            const m = dt.getMonth() + 1;
-            const q = Math.ceil(m / 3);
-
-            // Dashboard Filter
-            if ((type === 'daily' || type === 'monthly') && !sub.includes(m)) return;
-            if (type === 'daily' && !days.includes(dt.getDate())) return;
-            if (type === 'quarterly' && !sub.includes(q)) return;
-
-            const key = generateKey(dt);
-            if (!groups[key]) groups[key] = { total: 0, target: 0, cp: 0, call: 0, ir: 0, sr: 0, drop: 0, camp: 0 };
-
-            // สะสมยอดรายบรรทัด (Actual)
-            groups[key].total++;
-            if (cat === "CP No.") groups[key].cp++;
-            else if (cat === "Call IN") groups[key].call++;
-            else if (cat === "IR") groups[key].ir++;
-            else if (cat === "SR") groups[key].sr++;
-            else if (cat === "Drop Call") groups[key].drop++;
-            else if (cat === "Campaign") groups[key].camp++;
-
-            // อัปเดต Today Stats (เพื่อให้ยอด 84 เป็น 85)
-            if (rowDateStr === todayStr) {
-                todayStats.total++;
-                if (cat === "CP No.") todayStats.cp++;
-                else if (cat === "Call IN") todayStats.call++;
-                else if (cat === "IR") todayStats.ir++;
-                else if (cat === "SR") todayStats.sr++;
-                else if (cat === "Drop Call") todayStats.drop++;
-                else if (cat === "Campaign") todayStats.camp++;
-            }
-        });
-    }
-
-    // --- 4. แสดงผลและบังคับอัปเดตตัวเลขหน้าจอ ---
-    try {
-        updateTodayUI(todayStats);
-        renderChart(groups);
-        renderDashTable(groups);
-
-        // 🛡️ บังคับเขียนเลข Actual ลงในหน้าจอ (กรณีฟังก์ชัน updateTodayUI มี Error แฝง)
-        const actualLabel = document.getElementById('actualCount');
-        if (actualLabel) {
-            actualLabel.innerText = todayStats.total; // แสดงผลเป็น 85 ทันที
-        }
-        
-        // อัปเดตเวลา Auto Sync ล่าสุด
-        const syncDisplay = document.getElementById('autoSyncTime');
-        if (syncDisplay) {
-            syncDisplay.innerText = new Date().toLocaleTimeString('th-TH', { hour12: false });
-        }
-    } catch (e) {
-        console.warn("การแสดงผล UI บางส่วนขัดข้อง:", e); //
-    }
-}
-function processDashboard() {
     // 1. เตรียมค่าพื้นฐาน
     const viewTypeEl = document.getElementById('viewType');
     const selYearEl = document.getElementById('selYear');
@@ -653,9 +562,16 @@ function processDashboard() {
     const type = viewTypeEl.value;
     const selectedYear = parseInt(selYearEl.value);
     const year = selectedYear > 2500 ? selectedYear - 543 : selectedYear; 
-
+    
+    // ดึงค่าเดือนและวัน (ตรวจสอบว่ามีการเลือกจริงหรือไม่)
     const selectedMonths = Array.from(document.getElementById('selSub')?.selectedOptions || []).map(o => parseInt(o.value));
     const selectedDays = Array.from(document.getElementById('selDay')?.selectedOptions || []).map(o => parseInt(o.value));
+
+    // 🚩 กฎเหล็ก: หากไม่มีการเลือก เดือน หรือ วัน (ในโหมดรายวัน) ให้ล้างหน้าจอทันที
+    if (selectedMonths.length === 0 || (type === 'daily' && selectedDays.length === 0)) {
+        clearDashboardUI();
+        return;
+    }
 
     const todayStr = new Date().toLocaleDateString('en-CA');
     let todayStats = { cp: 0, call: 0, ir: 0, sr: 0, drop: 0, camp: 0, total: 0, target: 0 };
@@ -665,82 +581,83 @@ function processDashboard() {
         const rowYear = dateObj.getFullYear();
         const m = dateObj.getMonth() + 1;
         const d = dateObj.getDate();
+        // 🛡️ ใช้ Format YYYY-MM-DD เป็นมาตรฐานเพื่อป้องกัน Key ซ้ำซ้อน
         if (type === 'daily') return `${rowYear}-${String(m).padStart(2, '0')}-${String(d).padStart(2, '0')}`;
-        if (type === 'monthly') return `${rowYear}-${m}`;
+        if (type === 'monthly') return `${rowYear}-${String(m).padStart(2, '0')}`;
         return `Q${Math.ceil(m / 3)}`;
     };
 
-    // --- ส่วนที่ 1: จัดการ Target จาก Plans ---
+    // --- ส่วนที่ 1: จัดการ Target จาก Plans (เน้นกรองเฉพาะวันที่เลือกเท่านั้น) ---
     if (typeof allPlans !== 'undefined') {
         allPlans.forEach(p => {
             if (!p[0] || !p[1]) return;
             const dt = new Date(p[0]);
-            // 🛡️ เช็คชื่อพนักงานแบบยืดหยุ่น (Trim + Case Insensitive)
             if (isNaN(dt.getTime()) || p[1].toString().trim().toLowerCase() !== currentUser.trim().toLowerCase()) return;
             if (dt.getFullYear() !== year) return;
 
             const m = dt.getMonth() + 1;
-            const d = dt.getDate();
+            const d_num = dt.getDate();
+
+            // 🛡️ ตรวจสอบเงื่อนไขวันที่เลือก
             if (!selectedMonths.includes(m)) return;
-            if (type === 'daily' && selectedDays.length > 0 && !selectedDays.includes(d)) return;
-
+            if (type === 'daily' && !selectedDays.includes(d_num)) return;
+            
             const key = generateKey(dt);
-            if (!groups[key]) groups[key] = { total: 0, target: 0, cp: 0, call: 0, ir: 0, sr: 0, drop: 0, camp: 0 };
-            groups[key].target = Number(p[3] || 0);
-
-            if (dt.toLocaleDateString('en-CA') === todayStr) {
-                todayStats.target = Number(p[3] || 0);
+            if (!groups[key]) {
+                groups[key] = { total: 0, target: 0, cp: 0, call: 0, ir: 0, sr: 0, drop: 0, camp: 0, caseIds: new Set() };
             }
+            groups[key].target = Number(p[3] || 0);
+            if (dt.toLocaleDateString('en-CA') === todayStr) todayStats.target = Number(p[3] || 0);
         });
     }
 
-    // --- ส่วนที่ 2: จัดการข้อมูลจาก Archive & allData (Actual) ---
-    // รวมแหล่งข้อมูลเข้าด้วยกันเพื่อวนลูปทีเดียว ป้องกันยอดตกหล่น
+    // --- ส่วนที่ 2: จัดการ Actual (นับเฉพาะ Unique Case ID ในวันที่เลือก) ---
     const combinedData = [...(typeof allArchive !== 'undefined' ? allArchive : []), ...(typeof allData !== 'undefined' ? allData : [])];
-
     combinedData.forEach((d, idx) => {
-        if (!d[0] || !d[1] || d[0] === "วันที่") return; // ข้าม Header และบรรทัดว่าง
-
+        if (!d[0] || !d[1] || d[0] === "วันที่") return;
         const dt = new Date(d[0]);
         if (isNaN(dt.getTime()) || d[1].toString().trim().toLowerCase() !== currentUser.trim().toLowerCase()) return;
         if (dt.getFullYear() !== year) return;
 
         const m = dt.getMonth() + 1;
         const d_num = dt.getDate();
+
+        // 🛡️ ตรวจสอบเงื่อนไขวันที่เลือก (Actual ต้องตรงกับ Target ในส่วนที่ 1)
         if (!selectedMonths.includes(m)) return;
-        if (type === 'daily' && selectedDays.length > 0 && !selectedDays.includes(d_num)) return;
+        if (type === 'daily' && !selectedDays.includes(d_num)) return;
 
         const key = generateKey(dt);
-        if (!groups[key]) groups[key] = { total: 0, target: 0, cp: 0, call: 0, ir: 0, sr: 0, drop: 0, camp: 0 };
+        // สร้าง Object ใหม่หากวันนั้นมี Actual แต่ไม่มีการตั้ง Target ไว้ใน Plans
+        if (!groups[key]) {
+            groups[key] = { total: 0, target: 0, cp: 0, call: 0, ir: 0, sr: 0, drop: 0, camp: 0, caseIds: new Set() };
+        }
 
-        // เป็นข้อมูลสรุป (Archive) หรือ ข้อมูลรายบรรทัด (Data)
-        const isSummary = d.length > 5 && !isNaN(d[3]); // เช็คว่าเป็น Archive หรือไม่
-        
+        const isSummary = d.length > 5 && !isNaN(d[3]); 
         if (isSummary) {
             groups[key].total += Number(d[3] || 0);
             groups[key].cp    += Number(d[4] || 0);
             groups[key].call  += Number(d[5] || 0);
         } else {
-            // ข้อมูลรายบรรทัดจาก allData (วันนี้ที่มักจะเป็น 85)
-            groups[key].total++;
-            const cat = d[2];
-            if (cat === "CP No.") groups[key].cp++;
-            else if (cat === "Call IN") groups[key].call++;
-            else if (cat === "IR") groups[key].ir++;
-            else if (cat === "SR") groups[key].sr++;
-            else if (cat === "Drop Call") groups[key].drop++;
-            else if (cat === "Campaign") groups[key].camp++;
+            const caseId = d[3] ? d[3].toString().trim() : `idx-${idx}`;
+            if (!groups[key].caseIds.has(caseId)) {
+                groups[key].caseIds.add(caseId);
+                groups[key].total++; 
+                const cat = d[2] ? d[2].toString().trim() : "";
+                if (cat === "CP No.") groups[key].cp++;
+                else if (cat === "Call IN") groups[key].call++;
+                else if (cat === "IR") groups[key].ir++;
+                else if (cat === "SR") groups[key].sr++;
+                else if (cat === "Drop Call") groups[key].drop++;
+                else if (cat === "Campaign") groups[key].camp++;
+            }
         }
 
-        // อัปเดต Today Stats เฉพาะวันนี้
         if (dt.toLocaleDateString('en-CA') === todayStr) {
-            if (isSummary) {
-                todayStats.total += Number(d[3] || 0);
-            } else {
+            if (!todayStats._uSet) todayStats._uSet = new Set();
+            const cId = d[3] ? d[3].toString().trim() : `t-idx-${idx}`;
+            if (!todayStats._uSet.has(cId)) {
+                todayStats._uSet.add(cId);
                 todayStats.total++;
-                const cat = d[2];
-                if (cat === "CP No.") todayStats.cp++;
-                else if (cat === "Call IN") todayStats.call++;
             }
         }
     });
@@ -748,18 +665,35 @@ function processDashboard() {
     // --- ส่วนที่ 3: อัปเดต UI ---
     try {
         updateTodayUI(todayStats);
-        renderChart(groups);
-        renderDashTable(groups);
+        
+        const validKeys = Object.keys(groups);
+        if (validKeys.length > 0) {
+            renderChart(groups); //
+            renderDashTable(groups); 
+        } else {
+            clearDashboardUI();
+        }
 
-        // บังคับแสดงผลยอด 85 ลงใน Element
         const actualCountEl = document.getElementById('actualCount');
         if (actualCountEl) actualCountEl.innerText = todayStats.total;
-
-    } catch (e) {
-        console.warn("UI Update Error:", e);
-    }
+    } catch (e) { console.warn("UI Error:", e); }
 }
 
+// 🛡️ แก้ไขปัญหา ReferenceError: toggleSelect is not defined
+function toggleSelect(id, action) {
+    const el = document.getElementById(id);
+    if (!el) return;
+    for (let i = 0; i < el.options.length; i++) {
+        el.options[i].selected = (action === 'all');
+    }
+    processDashboard(); // อัปเดตกราฟทันทีหลังกดเลือก
+}
+
+function clearDashboardUI() {
+    const tbody = document.getElementById('dashTableBody');
+    if (tbody) tbody.innerHTML = '<tr><td colspan="10" class="text-center text-muted">กรุณาเลือกวันที่ต้องการดูข้อมูล</td></tr>';
+    if (typeof renderChart === 'function') renderChart({}); 
+}
 // 2. ฟังก์ชันอัปเดต UI หน้าบันทึก และ Progress Bar ไล่สี
 function updateTodayUI(s) {
     if (!s) return; // ป้องกัน Error ถ้าไม่มีข้อมูลส่งมา
@@ -779,7 +713,7 @@ function updateTodayUI(s) {
         balanceEl.style.color = balance < 0 ? "#dc3545" : (balance > 0 ? "#28a745" : "#ff9800");
     }
 
-    // ส่วนของ Progress Bar (กลับมาใช้ 3 สีมาตรฐาน)
+     // ส่วนของ Progress Bar (ปรับปรุงไล่สีทุก 5%)
     const percent = s.target > 0 ? Math.round((s.total / s.target) * 100) : 0;
     const bar = document.getElementById('goalProgress');
     
@@ -787,50 +721,47 @@ function updateTodayUI(s) {
         bar.style.width = Math.min(100, percent) + '%';
         bar.innerText = percent + '%';
         
-        // ล้างสีเดิมออกก่อน
+        // ล้าง Class เดิมที่อาจมีสีส้มติดอยู่ ออกให้หมด
         bar.className = "progress-bar-fill"; 
-        
-        if (percent <= 30) {
-            bar.style.backgroundColor = "#dc3545"; // แดง
-        } else if (percent < 100) {
-            bar.style.backgroundColor = "#ffc107"; // เหลือง
-            bar.style.color = "black";
-        } else {
-            bar.style.backgroundColor = "#28a745"; // เขียว
-            bar.style.color = "white";
+        bar.style.backgroundImage = "none"; // ป้องกันการติดสี Gradient เดิม
+
+        // --- เงื่อนไขไล่สีแบบ Interval ละ 5% ---
+        let bgColor = "";
+        let textColor = "white";
+
+        if (percent <= 5)       bgColor = "#8B0000"; // 0-5%: แดงเข้มมาก (Dark Red)
+        else if (percent <= 10) bgColor = "#A52A2A"; // 6-10%: แดงน้ำตาล
+        else if (percent <= 15) bgColor = "#B22222"; // 11-15%: แดงเพลิง
+        else if (percent <= 20) bgColor = "#DC3545"; // 16-20%: แดงมาตรฐาน
+        else if (percent <= 25) bgColor = "#E35D6A"; // 21-25%: แดงชมพู
+        else if (percent <= 30) bgColor = "#EA868F"; // 26-30%: แดงอ่อน
+        else if (percent <= 35) bgColor = "#F1AFB5"; // 31-35%: แดงพาสเทล
+        else if (percent <= 40) bgColor = "#FD7E14"; // 36-40%: ส้ม
+        else if (percent <= 45) bgColor = "#FF8C00"; // 41-45%: ส้มเข้ม
+        else if (percent <= 50) bgColor = "#FFD700"; // 46-50%: ทอง
+        else if (percent <= 60) bgColor = "#CC9A06"; // 51-60%: เหลืองเข้ม
+        else if (percent <= 80) bgColor = "#F1C40F"; // 61-80%: เหลืองสว่าง
+        else if (percent < 100) bgColor = "#A9DFBF"; // 81-99%: เขียวมิ้นต์
+        else {
+            bgColor = "#28A745"; // 100% ขึ้นไป: สีเขียว
         }
+
+        // ปรับแต่งสีตัวอักษรให้อ่านง่าย
+        if (percent > 45 && percent < 100) textColor = "black";
+
+        // สั่งเปลี่ยนสีจริงลงบน Element
+        bar.style.backgroundColor = bgColor;
+        bar.style.color = textColor;
     }
 }
 
-// 3. ฟังก์ชันวาดตาราง Dashboard (เน้นแสดงผลอย่างเดียว)
 function renderDashTable(groups) {
     const keys = Object.keys(groups).sort().reverse();
     const tbody = document.getElementById('dashTableBody');
     const tableHeader = document.querySelector('#tab-dash thead');
-    if (!tbody || !tableHeader) return;
-
-    tableHeader.innerHTML = `<tr><th>วันที่/กลุ่ม</th><th class="text-warning">CP</th><th>Call</th><th>IR</th><th>SR</th><th>Drop</th><th>Camp</th><th class="table-primary">Actual</th><th>Target</th><th>%</th></tr>`;
-
-    if (keys.length === 0) {
-        tbody.innerHTML = '<tr><td colspan="10" class="text-center text-muted">ไม่พบข้อมูล</td></tr>';
-        return;
-    }
-
-    tbody.innerHTML = keys.map(k => {
-        const g = groups[k];
-        const pct = g.target > 0 ? Math.round((g.total / g.target) * 100) : 0;
-        return `<tr><td class="small fw-bold">${k}</td><td>${g.cp}</td><td>${g.call}</td><td>${g.ir}</td><td>${g.sr}</td><td>${g.drop}</td><td>${g.camp}</td><td class="table-primary fw-bold">${g.total}</td><td>${g.target}</td><td class="fw-bold ${pct >= 100 ? 'text-success' : 'text-danger'}">${pct}%</td></tr>`;
-    }).join('');
-}
-// 2. ฟังก์ชันวาดตาราง Dashboard (แสดงผลตามการเลือก Filter)
-function renderDashTable(groups) {
-    const keys = Object.keys(groups).sort().reverse(); // เรียงวันที่ล่าสุดขึ้นก่อน
-    const tbody = document.getElementById('dashTableBody');
-    const tableHeader = document.querySelector('#tab-dash thead'); // อ้างอิงหัวตารางหน้า Dashboard
     
     if (!tbody || !tableHeader) return;
 
-    // 1. เพิ่มหัวตารางกลับเข้ามาให้ครบทุกคอลัมน์
     tableHeader.innerHTML = `
         <tr>
             <th>วันที่/กลุ่ม</th>
@@ -846,19 +777,37 @@ function renderDashTable(groups) {
         </tr>
     `;
 
-    // 2. ตรวจสอบว่ามีข้อมูลจากการเลือก Filter หรือไม่
     if (keys.length === 0) {
         tbody.innerHTML = '<tr><td colspan="10" class="text-center text-muted">กรุณาเลือกวันที่หรือเดือนที่ต้องการดูข้อมูล</td></tr>';
         return;
     }
 
-    // 3. วาดแถวข้อมูลแบบ Dynamic ตามการเลือก (แสดงได้หลายแถว)
     tbody.innerHTML = keys.map(k => {
         const g = groups[k];
-        const pct = g.target > 0 ? Math.round((g.total / g.target) * 100) : 0;
         
-        // กำหนดสีเปอร์เซ็นต์
-        const pctColor = pct >= 100 ? 'text-success' : (pct > 0 ? 'text-warning' : 'text-danger');
+        // --- ส่วนที่แก้ไข: ป้องกันการคำนวณผิดพลาดเมื่อไม่มี Target ---
+        const targetValue = Number(g.target || 0);
+        const actualValue = Number(g.total || 0);
+        
+        // ถ้าไม่มี Target ให้ pct เป็น 0 และแสดงเป็น N/A หรือ 0%
+        const pct = targetValue > 0 ? Math.round((actualValue / targetValue) * 100) : 0;
+        
+        // กำหนดสี: ถ้าไม่มี Target ให้เป็นสีเทา (Muted)
+        let customColor = '#6c757d'; 
+        
+        if (targetValue > 0) {
+            customColor = '#28A745'; // เขียวพื้นฐาน
+            if (pct <= 5)       customColor = '#8B0000';
+            else if (pct <= 10) customColor = '#A52A2A'; 
+            else if (pct <= 15) customColor = '#B22222';
+            else if (pct <= 20) customColor = '#DC3545';
+            else if (pct <= 25) customColor = '#E35D6A';
+            else if (pct <= 30) customColor = '#EA868F';
+            else if (pct <= 40) customColor = '#FD7E14';
+            else if (pct <= 60) customColor = '#CC9A06';
+            else if (pct <= 80) customColor = '#F1C40F';
+            else if (pct < 100) customColor = '#A9DFBF';
+        }
 
         return `
             <tr>
@@ -869,22 +818,35 @@ function renderDashTable(groups) {
                 <td>${g.sr || 0}</td>
                 <td>${g.drop || 0}</td>
                 <td>${g.camp || 0}</td>
-                <td class="table-primary fw-bold" style="background-color: #e3f2fd !important;">${g.total}</td>
-                <td class="text-muted fw-bold">${g.target}</td>
-                <td class="${pctColor} fw-bold">${pct}%</td>
+                <td class="table-primary fw-bold" style="background-color: #e3f2fd !important;">${actualValue}</td>
+                <td class="${targetValue === 0 ? 'text-danger' : ''}">${targetValue || '-'}</td>
+                <td class="fw-bold" style="color: ${customColor} !important;">
+                    ${targetValue > 0 ? pct + '%' : '<span class="text-muted" style="font-size: 0.8em;">No Target</span>'}
+                </td>
             </tr>
         `;
     }).join('');
 }
 
-    // --- 7. UI HELPERS ---
-    function showTab(t) {
-        document.querySelectorAll('.tab-content').forEach(el => el.classList.add('hidden-completely'));
-        document.getElementById('tab-'+t).classList.remove('hidden-completely');
-        document.querySelectorAll('.nav-btn').forEach(b => b.classList.remove('active-btn'));
-        document.getElementById('nav-'+t).classList.add('active-btn');
-        if(t === 'dash') processDashboard();
+// --- 7. UI HELPERS ---
+function showTab(t) {
+    // ซ่อนทุกหน้า
+    document.querySelectorAll('.tab-content').forEach(el => el.classList.add('hidden-completely'));
+    
+    // แสดงหน้าที่เลือก
+    const targetTab = document.getElementById('tab-' + t);
+    if (targetTab) targetTab.classList.remove('hidden-completely');
+    
+    // จัดการสถานะปุ่มเมนู
+    document.querySelectorAll('.nav-btn').forEach(b => b.classList.remove('active-btn'));
+    const targetBtn = document.getElementById('nav-' + t);
+    if (targetBtn) targetBtn.classList.add('active-btn');
+    
+    // ถ้ากลับมาหน้า Dashboard ให้ประมวลผลข้อมูลใหม่เสมอ
+    if (t === 'dash') {
+        processDashboard();
     }
+}
 
     function toggleHistoryVisibility() {
         document.getElementById('historyContent').classList.toggle('hidden-completely');
@@ -1307,26 +1269,6 @@ function updateHistory() {
         `;
     }).join('');
 }
-// ฟังก์ชันสำหรับอัปเดตวันที่และเวลาให้ตรงกับ HTML ID
-function updateClock() {
-    const now = new Date();
-    
-    // อัปเดตวันที่ (ID: displayDate)
-    const dateEl = document.getElementById('displayDate');
-    if (dateEl) {
-        const options = { year: 'numeric', month: 'long', day: 'numeric', weekday: 'long' };
-        dateEl.innerText = now.toLocaleDateString('th-TH', options);
-    }
-
-    // อัปเดตเวลา (ID: displayTime)
-    const timeEl = document.getElementById('displayTime');
-    if (timeEl) {
-        timeEl.innerText = now.toLocaleTimeString('th-TH', { hour12: false });
-    }
-}
-setInterval(updateClock, 1000);
-updateClock();
-
 
 // 1. ฟังก์ชันแสดงรายการแผนงานทั้งหมดในตาราง
 function renderPlanTable() {
@@ -1475,28 +1417,6 @@ async function saveWork() {
         Swal.fire({ icon: 'error', title: 'Error', text: 'การเชื่อมต่อผิดพลาด', timer: 2000 }); 
     }
 }
-function startClock() {
-        const update = () => {
-            const now = new Date();
-            const dateEl = document.getElementById('displayDate');
-            const timeEl = document.getElementById('displayTime');
-
-            if (dateEl) {
-                dateEl.innerText = now.toLocaleDateString('th-TH', {
-                    weekday: 'long', year: 'numeric', month: 'long', day: 'numeric'
-                });
-            }
-            if (timeEl) {
-                timeEl.innerText = now.toLocaleTimeString('th-TH', {
-                    hour: '2-digit', minute: '2-digit', second: '2-digit', hour12: false
-                });
-            }
-        };
-        setInterval(update, 1000);
-        update();
-    }
-    // เรียกใช้ทันที
-    startClock();
 </script>
 <script>
     (function() {
@@ -1505,13 +1425,30 @@ function startClock() {
             const dateEl = document.getElementById('displayDate');
             const timeEl = document.getElementById('displayTime');
             
-            if (dateEl) dateEl.innerText = now.toLocaleDateString('th-TH', { 
-                weekday: 'long', day: 'numeric', month: 'long', year: 'numeric' 
-            });
-            if (timeEl) timeEl.innerText = now.toLocaleTimeString('th-TH', { hour12: false });
+            // อัปเดตวันที่เป็นรูปแบบไทย
+            if (dateEl) {
+                dateEl.innerText = now.toLocaleDateString('th-TH', { 
+                    weekday: 'long', 
+                    day: 'numeric', 
+                    month: 'long', 
+                    year: 'numeric' 
+                });
+            }
+            
+            // อัปเดตเวลาเป็นรูปแบบ 24 ชั่วโมง
+            if (timeEl) {
+                timeEl.innerText = now.toLocaleTimeString('th-TH', { 
+                    hour: '2-digit', 
+                    minute: '2-digit', 
+                    second: '2-digit', 
+                    hour12: false 
+                });
+            }
         }
-        setInterval(updateAll, 1000);
+        
+        // รันฟังก์ชันทันที และตั้งเวลาทำงานทุก 1 วินาที
         updateAll();
+        setInterval(updateAll, 1000);
     })();
 </script>
 </body>
