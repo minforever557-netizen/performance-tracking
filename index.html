@@ -557,14 +557,12 @@ function processDashboard() {
     // 1. ตรวจสอบความพร้อมของ Element และข้อมูลพื้นฐาน
     const viewTypeEl = document.getElementById('viewType');
     const selYearEl = document.getElementById('selYear');
-    // เพิ่มการเช็ค currentUser ถ้าไม่มีให้หยุดก่อนเพื่อป้องกัน Error
     if (!viewTypeEl || !selYearEl || typeof currentUser === 'undefined' || !currentUser) return;
 
     const type = viewTypeEl.value;
     const selectedYear = parseInt(selYearEl.value);
     const year = selectedYear > 2500 ? selectedYear - 543 : selectedYear; 
     
-    // ดึงค่าเดือนและวัน (ใช้ค่าเริ่มต้นเป็น Array ว่างถ้าหา Element ไม่เจอ)
     const selectedMonths = Array.from(document.getElementById('selSub')?.selectedOptions || []).map(o => parseInt(o.value));
     const selectedDays = Array.from(document.getElementById('selDay')?.selectedOptions || []).map(o => parseInt(o.value));
 
@@ -575,7 +573,8 @@ function processDashboard() {
     }
 
     const todayStr = new Date().toLocaleDateString('en-CA');
-    let todayStats = { cp: 0, call: 0, ir: 0, sr: 0, drop: 0, camp: 0, total: 0, target: 0 };
+    // เพิ่มตัวแปรสะสมค่าแยกประเภทใน todayStats
+    let todayStats = { cp: 0, call: 0, ir: 0, sr: 0, drop: 0, camp: 0, total: 0, target: 0, _uSet: new Set() };
     let groups = {};
 
     const generateKey = (dateObj) => {
@@ -587,34 +586,31 @@ function processDashboard() {
         return `Q${Math.ceil(m / 3)}`;
     };
 
-    // --- ส่วนที่ 1: จัดการ Target (แก้ไขเป็นแบบบวกสะสม) ---
-if (typeof allPlans !== 'undefined' && allPlans) {
-    allPlans.forEach(p => {
-        if (!p[0] || !p[1]) return;
-        const dt = new Date(p[0]);
-        
-        if (isNaN(dt.getTime()) || p[1].toString().trim().toLowerCase() !== currentUser.trim().toLowerCase()) return;
-        if (dt.getFullYear() !== year) return;
+    // --- ส่วนที่ 1: จัดการ Target (แบบบวกสะสม) ---
+    if (typeof allPlans !== 'undefined' && allPlans) {
+        allPlans.forEach(p => {
+            if (!p[0] || !p[1]) return;
+            const dt = new Date(p[0]);
+            if (isNaN(dt.getTime()) || p[1].toString().trim().toLowerCase() !== currentUser.trim().toLowerCase()) return;
+            if (dt.getFullYear() !== year) return;
 
-        const m = dt.getMonth() + 1;
-        if (!selectedMonths.includes(m)) return;
-        if (type === 'daily' && !selectedDays.includes(dt.getDate())) return;
-        
-        const key = generateKey(dt);
-        if (!groups[key]) {
-            groups[key] = { total: 0, target: 0, cp: 0, call: 0, ir: 0, sr: 0, drop: 0, camp: 0, caseIds: new Set() };
-        }
+            const m = dt.getMonth() + 1;
+            if (!selectedMonths.includes(m)) return;
+            if (type === 'daily' && !selectedDays.includes(dt.getDate())) return;
+            
+            const key = generateKey(dt);
+            if (!groups[key]) {
+                groups[key] = { total: 0, target: 0, cp: 0, call: 0, ir: 0, sr: 0, drop: 0, camp: 0, caseIds: new Set() };
+            }
 
-        // ✅ แก้ไข: เปลี่ยนจาก = เป็น += เพื่อรวม Target ทุกวันเข้าด้วยกันใน Key เดียวกัน (รายเดือน/รายไตรมาส)
-        const val = Number(p[3] || 0);
-        groups[key].target += val;
+            const val = Number(p[3] || 0);
+            groups[key].target += val;
 
-        // สำหรับสถิติรายวัน (Today)
-        if (dt.toLocaleDateString('en-CA') === todayStr) {
-            todayStats.target = val; 
-        }
-    });
-}
+            if (dt.toLocaleDateString('en-CA') === todayStr) {
+                todayStats.target += val; 
+            }
+        });
+    }
 
     // --- ส่วนที่ 2: จัดการ Actual ---
     const combinedData = [
@@ -637,41 +633,91 @@ if (typeof allPlans !== 'undefined' && allPlans) {
             groups[key] = { total: 0, target: 0, cp: 0, call: 0, ir: 0, sr: 0, drop: 0, camp: 0, caseIds: new Set() };
         }
 
+        const isToday = dt.toLocaleDateString('en-CA') === todayStr;
+        const cat = d[2] ? d[2].toString().trim() : "";
         const isSummary = d.length > 5 && !isNaN(d[3]) && d[3] !== ""; 
+
         if (isSummary) {
-            groups[key].total += Number(d[3] || 0);
-            groups[key].cp    += Number(d[4] || 0);
-            groups[key].call  += Number(d[5] || 0);
+            const sumVal = Number(d[3] || 0);
+            const cpVal = Number(d[4] || 0);
+            const callVal = Number(d[5] || 0);
+            
+            groups[key].total += sumVal;
+            groups[key].cp += cpVal;
+            groups[key].call += callVal;
+
+            if (isToday) {
+                todayStats.total += sumVal;
+                todayStats.cp += cpVal;
+                todayStats.call += callVal;
+            }
         } else {
             const caseId = d[3] ? d[3].toString().trim() : `idx-${idx}`;
             if (!groups[key].caseIds.has(caseId)) {
                 groups[key].caseIds.add(caseId);
                 groups[key].total++; 
-                const cat = d[2] ? d[2].toString().trim() : "";
+                
+                // แยกประเภทงานลงใน groups
                 if (cat === "CP No.") groups[key].cp++;
                 else if (cat === "Call IN") groups[key].call++;
                 else if (cat === "IR") groups[key].ir++;
                 else if (cat === "SR") groups[key].sr++;
                 else if (cat === "Drop Call") groups[key].drop++;
                 else if (cat === "Campaign") groups[key].camp++;
-            }
-        }
 
-        if (dt.toLocaleDateString('en-CA') === todayStr) {
-            if (!todayStats._uSet) todayStats._uSet = new Set();
-            const cId = d[3] ? d[3].toString().trim() : `t-idx-${idx}`;
-            if (!todayStats._uSet.has(cId)) {
-                todayStats._uSet.add(cId);
-                todayStats.total++;
+                // ✅ เพิ่มส่วนนี้: นับแยกประเภทงานสำหรับวงกลม (todayStats)
+                if (isToday) {
+                    if (!todayStats._uSet.has(caseId)) {
+                        todayStats._uSet.add(caseId);
+                        todayStats.total++;
+                        if (cat === "CP No.") todayStats.cp++;
+                        else if (cat === "Call IN") todayStats.call++;
+                        else if (cat === "IR") todayStats.ir++;
+                        else if (cat === "SR") todayStats.sr++;
+                        else if (cat === "Drop Call") todayStats.drop++;
+                        else if (cat === "Campaign") todayStats.camp++;
+                    }
+                }
             }
         }
     });
 
-    // --- ส่วนที่ 3: อัปเดต UI (เพิ่มความหน่วงเพื่อให้แน่ใจว่า DOM พร้อม) ---
+    // --- ส่วนที่ 3: อัปเดต UI ---
     requestAnimationFrame(() => {
         try {
             if (typeof updateTodayUI === 'function') updateTodayUI(todayStats);
             
+            // ✅ อัปเดตตัวเลขในวงกลม (Badges)
+            const badgeMap = { 
+                "cp": "badge-CP", 
+                "call": "badge-Call", 
+                "ir": "badge-IR", 
+                "sr": "badge-SR", 
+                "drop": "badge-Drop", 
+                "camp": "badge-Camp" 
+            };
+
+            Object.keys(badgeMap).forEach(key => {
+                const el = document.getElementById(badgeMap[key]);
+                if (el) el.innerText = todayStats[key] || 0;
+            });
+
+            // อัปเดตตัวเลขสรุปด้านบน
+            const targetVal = todayStats.target || 0;
+            const actualVal = todayStats.total || 0;
+            const balanceVal = actualVal - targetVal;
+
+            const updateText = (id, val) => {
+                const el = document.getElementById(id);
+                if (el) el.innerText = val;
+            };
+
+            updateText('displayTarget', targetVal);
+            updateText('displayActual', actualVal);
+            updateText('displayBalance', balanceVal);
+            updateText('actualCount', actualVal);
+
+            // จัดการกราฟและตาราง
             const validKeys = Object.keys(groups);
             if (validKeys.length > 0) {
                 if (typeof renderChart === 'function') renderChart(groups);
@@ -680,14 +726,22 @@ if (typeof allPlans !== 'undefined' && allPlans) {
                 if (typeof clearDashboardUI === 'function') clearDashboardUI();
             }
 
-            const actualCountEl = document.getElementById('actualCount');
-            if (actualCountEl) actualCountEl.innerText = todayStats.total;
-        } catch (e) { console.warn("UI Update Error:", e); }
+        } catch (e) { 
+            console.warn("UI Update Error:", e); 
+        }
     });
-}function clearDashboardUI() {
+}
+
+function clearDashboardUI() {
     const tbody = document.getElementById('dashTableBody');
     if (tbody) tbody.innerHTML = '<tr><td colspan="10" class="text-center text-muted">กรุณาเลือกวันที่ต้องการดูข้อมูล</td></tr>';
     if (typeof renderChart === 'function') renderChart({}); 
+    
+    const badgeIds = ["badge-CP", "badge-Call", "badge-IR", "badge-SR", "badge-Drop", "badge-Camp"];
+    badgeIds.forEach(id => {
+        const el = document.getElementById(id);
+        if (el) el.innerText = "0";
+    });
 }
 // 2. ฟังก์ชันอัปเดต UI หน้าบันทึก และ Progress Bar ไล่สี
 function updateTodayUI(s) {
