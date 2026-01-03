@@ -1033,69 +1033,73 @@ let autoSyncInterval = null;
 /**
  * 🔄 1. ฟังก์ชันหลักสำหรับ Sync และอัปเดตทุกอย่าง (Single Source of Truth)
  */
+/**
+ * 🔄 1. ฟังก์ชันหลักสำหรับ Sync และอัปเดตทุกอย่าง
+ */
 function runSyncProcess() {
     const now = new Date();
     const shortTime = now.toLocaleTimeString('th-TH', { hour12: false });
     const fullDate = now.toLocaleDateString('th-TH');
 
-    // --- อัปเดตเวลาบน UI ทันที ---
+    // --- อัปเดตเวลาบน UI ทันที (ส่วนนี้ต้องทำงานเสมอ) ---
     const elAuto = document.getElementById('autoSyncTime');
-    if (elAuto) elAuto.innerText = `${fullDate} ${shortTime}`;
+    if (elAuto) {
+        elAuto.innerText = `${fullDate} ${shortTime}`;
+        console.log("⏱️ UI Sync Time Updated at: " + shortTime); // เช็คใน Console ว่าทำงานไหม
+    }
 
     const elMain = document.getElementById('displayTime');
     if (elMain) elMain.innerText = shortTime;
 
-    // --- ประมวลผลข้อมูล (เฉพาะเมื่อ Login แล้ว) ---
+    // --- ประมวลผลข้อมูล (เช็คชื่อ User ภายในนี้แทน) ---
     try {
-        if (typeof currentUser !== 'undefined' && currentUser) {
+        if (typeof currentUser !== 'undefined' && currentUser && currentUser !== "") {
             if (typeof parseCPData === 'function') parseCPData();
 
-            // รอข้อมูล Set ตัวเล็กน้อยแล้วคำนวณ Dashboard/กราฟ
             setTimeout(() => {
                 if (typeof processDashboard === 'function') {
                     processDashboard(); 
                 }
             }, 300);
+        } else {
+            console.log("⚠️ Waiting for Login to fetch data...");
         }
     } catch (err) {
-        console.warn("ระบบกำลังรอข้อมูลผู้ใช้...");
+        console.warn("Sync Data Waiting...", err);
     }
 }
 
 /**
- * ⚙️ 2. ฟังก์ชันควบคุมระบบจัดการ (เรียกใช้เมื่อ Login สำเร็จ หรือโหลดหน้า)
+ * ⚙️ 2. ฟังก์ชันเริ่มระบบการจัดการ (ใช้สำหรับเริ่ม Timer)
  */
 function startManagementSystem() {
-    runSyncProcess(); // รันทันที 1 ครั้ง
+    // รันทันที 1 ครั้งเพื่ออัปเดต UI
+    runSyncProcess(); 
 
-    // เคลียร์ Timer เก่า (ถ้ามี) เพื่อป้องกันการรันซ้อน
-    if (window.mainSyncTimer) clearInterval(window.mainSyncTimer);
+    // เคลียร์ Timer เก่า (ถ้ามี)
+    if (window.mainSyncTimer) {
+        clearInterval(window.mainSyncTimer);
+    }
     
-    // ตั้งรอบการ Sync ข้อมูลทุก 1 นาที
+    // 🚩 ตั้งรอบการ Sync ข้อมูลทุก 1 นาที (60,000 ms)
     window.mainSyncTimer = setInterval(runSyncProcess, 60000);
+    console.log("🚀 Auto Sync Timer Started (Every 1 min)");
 }
 
 /**
- * 🚀 3. จุดเริ่มทำงานจุดเดียว (Single Entry Point)
+ * 🚀 3. จุดเริ่มทำงานจุดเดียวเมื่อโหลดหน้าเว็บ
  */
 window.addEventListener('load', () => {
-    // ก. เริ่มรันนาฬิกาหลักให้เดินทุกวินาที (สำหรับเข็มวินาที)
+    // ก. ตั้งเวลาให้นาฬิกาหลักเดินทุกวินาที
     setInterval(() => {
         const timeEl = document.getElementById('displayTime');
         if (timeEl) timeEl.innerText = new Date().toLocaleTimeString('th-TH', { hour12: false });
     }, 1000);
 
-    // ข. รันเวลา Sync ครั้งแรก
-    runSyncProcess();
-
-    // ค. หากมี User ค้างอยู่ ให้เริ่มระบบ Sync อัตโนมัติทันที
-    if (typeof currentUser !== 'undefined' && currentUser) {
-        startManagementSystem();
-    }
-    
-    console.log("🚀 System Services Started.");
+    // ข. 🚩 บังคับให้เริ่มระบบจัดการทันทีที่โหลดหน้าจอ 
+    // เพื่อให้ Timer 1 นาทีเริ่มเดินตั้งแต่ตอนนี้
+    startManagementSystem();
 });
-
 function clearCP() {
     // 1. ล้างข้อมูลในช่อง Textarea ทั้ง 3 ช่องทันที
     const inputs = ['cpInput4G', 'cpInput5G', 'cpInputAddr'];
