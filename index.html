@@ -637,19 +637,34 @@ function processDashboard() {
         const cat = d[2] ? d[2].toString().trim() : "";
         const isSummary = d.length > 5 && !isNaN(d[3]) && d[3] !== ""; 
 
-        if (isSummary) {
-            const sumVal = Number(d[3] || 0);
-            const cpVal = Number(d[4] || 0);
-            const callVal = Number(d[5] || 0);
+       if (isSummary) {
+            // ดึงค่าจากคอลัมน์ D ถึง J (Index 3 ถึง 9)
+            const sumVal  = Number(d[3] || 0); // Actual (Total)
+            const cpVal   = Number(d[4] || 0); // CP
+            const callVal = Number(d[5] || 0); // Call IN
+            const irVal   = Number(d[6] || 0); // IR
+            const srVal   = Number(d[7] || 0); // SR
+            const dropVal = Number(d[8] || 0); // Drop Call
+            const campVal = Number(d[9] || 0); // Campaign
             
+            // 1. อัปเดตลงใน groups (สำหรับตารางด้านล่างและกราฟ)
             groups[key].total += sumVal;
-            groups[key].cp += cpVal;
-            groups[key].call += callVal;
+            groups[key].cp    += cpVal;
+            groups[key].call  += callVal;
+            groups[key].ir    += irVal;
+            groups[key].sr    += srVal;
+            groups[key].drop  += dropVal;
+            groups[key].camp  += campVal;
 
+            // 2. อัปเดตลงใน todayStats (สำหรับวงกลมด้านบน)
             if (isToday) {
                 todayStats.total += sumVal;
-                todayStats.cp += cpVal;
-                todayStats.call += callVal;
+                todayStats.cp    += cpVal;
+                todayStats.call  += callVal;
+                todayStats.ir    += irVal;
+                todayStats.sr    += srVal;
+                todayStats.drop  += dropVal;
+                todayStats.camp  += campVal;
             }
         } else {
             const caseId = d[3] ? d[3].toString().trim() : `idx-${idx}`;
