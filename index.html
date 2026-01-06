@@ -254,14 +254,6 @@
                     <div class="filter-box" id="monthBox"><label class="filter-label" id="lblSub">เดือน</label><select id="selSub" multiple onchange="processDashboard()"></select></div>
                     <div class="filter-box" id="dayBox"><label class="filter-label">วัน</label><select id="selDay" multiple onchange="processDashboard()"></select></div>
                 </div>
-				  <div class="filter-box">
-					<label class="filter-label">โหมดกราฟ</label>
-						<select id="chartMode" onchange="processDashboard()">
-						<option value="both">แสดงทั้งหมด</option>
-						<option value="actual">เฉพาะจำนวน (Actual)</option>
-						<option value="percent">เฉพาะเปอร์เซ็นต์ (%)</option>
-						</select>
-				</div>
 
                 <div style="height: 350px;"><canvas id="perfChart"></canvas></div>
                 
@@ -381,113 +373,93 @@ function renderChart(groups) {
     if (!canvas) return;
     const ctx = canvas.getContext('2d');
 
-    // 🚩 ดึงค่าจาก Dropdown ที่เพิ่มใหม่
-    const mode = document.getElementById('chartMode')?.value || 'both';
-
     const labels = Object.keys(groups).sort();
-    const actualData = labels.map(k => groups[k].total || 0);
-    const targetData = labels.map(k => groups[k].target || 0);
-    const percentData = labels.map(k => {
-        const t = groups[k].target || 0;
-        const a = groups[k].total || 0;
-        return t > 0 ? Math.round((a / t) * 100) : 0;
-    });
+    const actualData = labels.map(k => groups[k].total);
+    const targetData = labels.map(k => groups[k].target);
 
+    // ทำลายกราฟเก่าก่อนสร้างใหม่ (ป้องกันการวาดซ้อน)
     if (myChart) {
         myChart.destroy();
     }
 
-    // สร้างชุดข้อมูลตามโหมดที่เลือก
-    const datasets = [];
+myChart = new Chart(ctx, {
+    type: typeof currentChartType !== 'undefined' ? currentChartType : 'bar',
+    plugins: [ChartDataLabels], 
+    data: {
+        labels: labels,
+        datasets: [
+            {
+                label: 'Actual',
+                data: actualData,
+                backgroundColor: '#ffa500', 
+                borderColor: '#ffa500',
+                borderWidth: 1,
+                datalabels: {
+                    anchor: 'end',
+                    align: 'top',
+                    font: { weight: 'bold' },
+                    // ฟังก์ชันเปลี่ยนสีตัวเลขตาม % ของ Target ในจุดนั้นๆ
+                    color: function(context) {
+                        const index = context.dataIndex;
+                        const actual = context.dataset.data[index];
+                         const target = targetData[index];
+                        const pct = target > 0 ? (actual / target) * 100 : 0;
 
-    // กรณีเลือก 'แสดงทั้งหมด' หรือ 'เฉพาะเปอร์เซ็นต์'
-    if (mode === 'both' || mode === 'percent') {
-        datasets.push({
-            label: '% Achievement',
-            data: percentData,
-            type: 'line', 
-            borderColor: '#28A745',
-            backgroundColor: '#28A745',
-            borderWidth: 3,
-            fill: false,
-            yAxisID: 'y1', // 🚩 ใช้แกนขวา
-            order: 1,
-            datalabels: {
-                align: 'top',
-                color: '#28A745',
-                formatter: (val) => val + '%'
-            }
-        });
-    }
-
-    // กรณีเลือก 'แสดงทั้งหมด' หรือ 'เฉพาะจำนวน'
-    if (mode === 'both' || mode === 'actual') {
-        datasets.push({
-            label: 'Actual',
-            data: actualData,
-            type: 'bar',
-            backgroundColor: '#ffa500', 
-            yAxisID: 'y', // 🚩 ใช้แกนซ้าย
-            order: 2,
-            datalabels: {
-                anchor: 'end',
-                align: 'top',
-                font: { weight: 'bold' },
-                color: function(context) {
-                    const index = context.dataIndex;
-                    const pct = targetData[index] > 0 ? (context.dataset.data[index] / targetData[index]) * 100 : 0;
-                    // Logic ไล่สีที่คุณใช้อยู่เดิม
-                    if (pct <= 20) return '#DC3545';
-                    if (pct <= 80) return '#FFA500';
-                    return '#28A745';
-                }
-            }
-        });
-
-        datasets.push({
-            label: 'Target',
-            data: targetData,
-            type: 'line', 
-            borderColor: '#ff6384',
-            borderDash: [5, 5],
-            fill: false,
-            yAxisID: 'y', // 🚩 ใช้แกนซ้าย
-            order: 3,
-            datalabels: { display: false }
-        });
-    }
-
-    myChart = new Chart(ctx, {
-        plugins: [ChartDataLabels],
-        data: { labels: labels, datasets: datasets },
-        options: {
-            responsive: true,
-            maintainAspectRatio: false,
-            layout: { padding: { top: 40 } },
-            scales: {
-                y: { // แกนซ้าย
-                    display: (mode === 'both' || mode === 'actual'),
-                    beginAtZero: true,
-                    position: 'left',
-                    title: { display: true, text: 'จำนวน (เคส)' }
-                },
-                y1: { // แกนขวา
-                    display: (mode === 'both' || mode === 'percent'),
-                    beginAtZero: true,
-                    position: 'right',
-                    min: 0,
-                    max: 150,
-                    title: { display: true, text: 'เปอร์เซ็นต์ (%)' },
-                    grid: { drawOnChartArea: false },
-                    ticks: { callback: (val) => val + '%' }
+                            // --- ไล่ระดับสีทุก 5% ---
+                                if (pct <= 5)   return '#8B0000'; // แดงมืดมาก (Dark Red)
+                                if (pct <= 10)  return '#A52A2A'; // แดงน้ำตาล
+                                if (pct <= 15)  return '#B22222'; // แดงเพลิง
+                                if (pct <= 20)  return '#DC3545'; // แดงมาตรฐาน
+                                if (pct <= 25)  return '#E35D6A'; // แดงชมพู
+                                if (pct <= 30)  return '#EA868F'; // แดงอ่อน
+                                if (pct <= 35)  return '#F1AFB5'; // แดงพาสเทล
+                                if (pct <= 40)  return '#F8D7DA'; // แดงจางมาก
+                                if (pct <= 45)  return '#FF8C00'; // ส้มเข้ม
+                                if (pct <= 50)  return '#FD7E14'; // ส้มมาตรฐาน
+                                if (pct <= 55)  return '#FFA500'; // ส้มทอง
+                                if (pct <= 60)  return '#FFB347'; // ส้มพาสเทล
+                                if (pct <= 65)  return '#CC9A06'; // เหลืองเข้ม (Gold)
+                                if (pct <= 70)  return '#D4A017'; // เหลืองทอง
+                                if (pct <= 75)  return '#E1B12C'; // เหลืองมัสตาร์ด
+                                if (pct <= 80)  return '#F1C40F'; // เหลืองสว่าง
+                                if (pct <= 85)  return '#F4D03F'; // เหลืองอ่อน
+                                if (pct <= 90)  return '#F7DC6F'; // เหลืองจาง
+                                if (pct <= 95)  return '#D4EFDF'; // เขียวอ่อนมาก
+                                if (pct < 100)  return '#A9DFBF'; // เขียวมิ้นต์
+    
+                                return '#28A745'; // 100% ขึ้นไป: สีเขียว (ยอด 104% ของคุณจะเป็นสีนี้)
+                        }
                 }
             },
-            plugins: {
-                legend: { position: 'top' }
+            {
+                label: 'Target',
+                data: targetData,
+                type: 'line', 
+                borderColor: '#ff6384',
+                borderDash: [5, 5],
+                fill: false,
+                datalabels: {
+                    display: false // ปิดตัวเลขของเส้น Target เพื่อไม่ให้รก หรือจะเปิดก็ได้ครับ
+                }
             }
-        }
-    });
+        ]
+    },
+    options: {
+        responsive: true,
+        maintainAspectRatio: false,
+        layout: { padding: { top: 30 } },
+        plugins: {
+            legend: { position: 'top' },
+            datalabels: {
+                display: true,
+                formatter: (value) => value > 0 ? value : ''
+            }
+        },
+        scales: { y: { beginAtZero: true } }
+    }
+});
 }
+
 // ฟังก์ชันตั้งค่าเริ่มต้น (เรียกครั้งเดียวตอนโหลดแอป)
 function setupFilters() {
     const selYear = document.getElementById('selYear');
@@ -665,34 +637,19 @@ function processDashboard() {
         const cat = d[2] ? d[2].toString().trim() : "";
         const isSummary = d.length > 5 && !isNaN(d[3]) && d[3] !== ""; 
 
-       if (isSummary) {
-            // ดึงค่าจากคอลัมน์ D ถึง J (Index 3 ถึง 9)
-            const sumVal  = Number(d[3] || 0); // Actual (Total)
-            const cpVal   = Number(d[4] || 0); // CP
-            const callVal = Number(d[5] || 0); // Call IN
-            const irVal   = Number(d[6] || 0); // IR
-            const srVal   = Number(d[7] || 0); // SR
-            const dropVal = Number(d[8] || 0); // Drop Call
-            const campVal = Number(d[9] || 0); // Campaign
+        if (isSummary) {
+            const sumVal = Number(d[3] || 0);
+            const cpVal = Number(d[4] || 0);
+            const callVal = Number(d[5] || 0);
             
-            // 1. อัปเดตลงใน groups (สำหรับตารางด้านล่างและกราฟ)
             groups[key].total += sumVal;
-            groups[key].cp    += cpVal;
-            groups[key].call  += callVal;
-            groups[key].ir    += irVal;
-            groups[key].sr    += srVal;
-            groups[key].drop  += dropVal;
-            groups[key].camp  += campVal;
+            groups[key].cp += cpVal;
+            groups[key].call += callVal;
 
-            // 2. อัปเดตลงใน todayStats (สำหรับวงกลมด้านบน)
             if (isToday) {
                 todayStats.total += sumVal;
-                todayStats.cp    += cpVal;
-                todayStats.call  += callVal;
-                todayStats.ir    += irVal;
-                todayStats.sr    += srVal;
-                todayStats.drop  += dropVal;
-                todayStats.camp  += campVal;
+                todayStats.cp += cpVal;
+                todayStats.call += callVal;
             }
         } else {
             const caseId = d[3] ? d[3].toString().trim() : `idx-${idx}`;
