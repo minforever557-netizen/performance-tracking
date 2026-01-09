@@ -638,18 +638,33 @@ function processDashboard() {
         const isSummary = d.length > 5 && !isNaN(d[3]) && d[3] !== ""; 
 
         if (isSummary) {
-            const sumVal = Number(d[3] || 0);
-            const cpVal = Number(d[4] || 0);
+            // ดึงค่าตามลำดับคอลัมน์ใน Sheet Daily_Archive (d[3]=Actual, d[4]=CP, d[5]=Call, d[6]=IR, d[7]=SR, d[8]=Drop, d[9]=Camp)
+            const sumVal  = Number(d[3] || 0);
+            const cpVal   = Number(d[4] || 0);
             const callVal = Number(d[5] || 0);
+            const irVal   = Number(d[6] || 0);
+            const srVal   = Number(d[7] || 0);
+            const dropVal = Number(d[8] || 0);
+            const campVal = Number(d[9] || 0);
             
+            // เก็บเข้ากลุ่มข้อมูลหลัก (สำหรับตารางด้านล่าง)
             groups[key].total += sumVal;
-            groups[key].cp += cpVal;
-            groups[key].call += callVal;
+            groups[key].cp    += cpVal;
+            groups[key].call  += callVal;
+            groups[key].ir    += irVal;
+            groups[key].sr    += srVal;
+            groups[key].drop  += dropVal;
+            groups[key].camp  += campVal;
 
+            // ถ้าเป็นของวันนี้ ให้เก็บเข้าตัวแปรสำหรับแสดงผลวงกลม/สรุปด้านบนด้วย
             if (isToday) {
                 todayStats.total += sumVal;
-                todayStats.cp += cpVal;
-                todayStats.call += callVal;
+                todayStats.cp    += cpVal;
+                todayStats.call  += callVal;
+                todayStats.ir    += irVal;
+                todayStats.sr    += srVal;
+                todayStats.drop  += dropVal;
+                todayStats.camp  += campVal;
             }
         } else {
             const caseId = d[3] ? d[3].toString().trim() : `idx-${idx}`;
@@ -811,72 +826,78 @@ function renderDashTable(groups) {
     
     if (!tbody || !tableHeader) return;
 
+    // 1. ปรับหัวข้อ (Header) ทั้งหมดให้เป็นสีส้ม และเพิ่มคอลัมน์ Balance
     tableHeader.innerHTML = `
         <tr>
-            <th>วันที่/กลุ่ม</th>
+            <th style="color: #ff9800;">วันที่/กลุ่ม</th>
             <th style="color: #ff9800;">CP</th>
-            <th>Call</th>
-            <th>IR</th>
-            <th>SR</th>
-            <th>Drop</th>
-            <th>Camp</th>
-            <th class="table-primary">Actual</th>
-            <th>Target</th>
-            <th>%</th>
+            <th style="color: #ff9800;">Call</th>
+            <th style="color: #ff9800;">IR</th>
+            <th style="color: #ff9800;">SR</th>
+            <th style="color: #ff9800;">Drop</th>
+            <th style="color: #ff9800;">Camp</th>
+            <th style="color: #ff9800;">Actual</th>
+            <th style="color: #ff9800;">Target</th>
+            <th style="color: #ff9800;">Balance</th>
+            <th style="color: #ff9800;">%</th>
         </tr>
     `;
 
     if (keys.length === 0) {
-        tbody.innerHTML = '<tr><td colspan="10" class="text-center text-muted">กรุณาเลือกวันที่หรือเดือนที่ต้องการดูข้อมูล</td></tr>';
+        tbody.innerHTML = '<tr><td colspan="11" class="text-center text-muted">กรุณาเลือกวันที่หรือเดือนที่ต้องการดูข้อมูล</td></tr>';
         return;
     }
 
     tbody.innerHTML = keys.map(k => {
         const g = groups[k];
         
-        // --- ส่วนที่แก้ไข: ป้องกันการคำนวณผิดพลาดเมื่อไม่มี Target ---
-        const targetValue = Number(g.target || 0);
-        const actualValue = Number(g.total || 0);
+        // 2. ดึงข้อมูลจาก Property ให้ตรงกับชื่อคอลัมน์ใน Sheet 'Daily_Archive'
+        // ใช้ Number() เพื่อป้องกันกรณีข้อมูลมาเป็นข้อความ และรองรับชื่อ Key ที่อาจเป็นตัวใหญ่/เล็ก
+        const valCP    = Number(g.CP || g.cp || 0);
+        const valCall  = Number(g['Call IN'] || g.call || 0); // ดึงจากคอลัมน์ 'Call IN'
+        const valIR    = Number(g.IR || g.ir || 0);          // ดึงจากคอลัมน์ 'IR'
+        const valSR    = Number(g.SR || g.sr || 0);          // ดึงจากคอลัมน์ 'SR'
+        const valDrop  = Number(g['Drop Call'] || g.drop || 0); // ดึงจากคอลัมน์ 'Drop Call'
+        const valCamp  = Number(g.Campaign || g.camp || 0);  // ดึงจากคอลัมน์ 'Campaign'
         
-        // ถ้าไม่มี Target ให้ pct เป็น 0 และแสดงเป็น N/A หรือ 0%
+        const targetValue = Number(g.Target || g.target || 0);
+        const actualValue = Number(g['Actual (Total)'] || g.total || 0); // ดึงจาก 'Actual (Total)'
+        
+        // 3. คำนวณคอลัมน์ Balance (Actual - Target)
+        const balance = actualValue - targetValue;
+        
         const pct = targetValue > 0 ? Math.round((actualValue / targetValue) * 100) : 0;
         
-        // กำหนดสี: ถ้าไม่มี Target ให้เป็นสีเทา (Muted)
-        let customColor = '#6c757d'; 
-        
+        // กำหนดสีตามเงื่อนไขความสำเร็จ (%)
+        let pctColor = '#6c757d'; 
         if (targetValue > 0) {
-            customColor = '#28A745'; // เขียวพื้นฐาน
-            if (pct <= 5)       customColor = '#8B0000';
-            else if (pct <= 10) customColor = '#A52A2A'; 
-            else if (pct <= 15) customColor = '#B22222';
-            else if (pct <= 20) customColor = '#DC3545';
-            else if (pct <= 25) customColor = '#E35D6A';
-            else if (pct <= 30) customColor = '#EA868F';
-            else if (pct <= 40) customColor = '#FD7E14';
-            else if (pct <= 60) customColor = '#CC9A06';
-            else if (pct <= 80) customColor = '#F1C40F';
-            else if (pct < 100) customColor = '#A9DFBF';
+            pctColor = '#28A745'; 
+            if (pct <= 40)      pctColor = '#DC3545';
+            else if (pct <= 80) pctColor = '#FD7E14';
+            else if (pct < 100) pctColor = '#CC9A06';
         }
 
         return `
             <tr>
                 <td class="fw-bold small">${k}</td>
-                <td>${g.cp || 0}</td>
-                <td>${g.call || 0}</td>
-                <td>${g.ir || 0}</td>
-                <td>${g.sr || 0}</td>
-                <td>${g.drop || 0}</td>
-                <td>${g.camp || 0}</td>
-                <td class="table-primary fw-bold" style="background-color: #e3f2fd !important;">${actualValue}</td>
-                <td class="${targetValue === 0 ? 'text-danger' : ''}">${targetValue || '-'}</td>
-                <td class="fw-bold" style="color: ${customColor} !important;">
-                    ${targetValue > 0 ? pct + '%' : '<span class="text-muted" style="font-size: 0.8em;">No Target</span>'}
+                <td>${valCP}</td>
+                <td>${valCall}</td>
+                <td>${valIR}</td>
+                <td>${valSR}</td>
+                <td>${valDrop}</td>
+                <td>${valCamp}</td>
+                <td class="fw-bold" style="background-color: #fff3e0 !important;">${actualValue}</td>
+                <td>${targetValue || '-'}</td>
+                <td class="fw-bold ${balance >= 0 ? 'text-success' : 'text-danger'}">
+                    ${balance > 0 ? '+' + balance : balance}
+                </td>
+                <td class="fw-bold" style="color: ${pctColor} !important;">
+                    ${targetValue > 0 ? pct + '%' : '-'}
                 </td>
             </tr>
         `;
     }).join('');
 }
-
 // --- 7. UI HELPERS ---
 function showTab(t) {
     // ซ่อนทุกหน้า
