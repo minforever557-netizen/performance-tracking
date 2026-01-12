@@ -97,8 +97,6 @@
     font-weight: 900;
     color: #4a5568;
 }
-        }
-
         /* --- Input Card & Fields (เน้นเส้นขอบชัดเจน) --- */
         .input-card-wrapper {
             background: #ffffff; border: 1px solid #e2e8f0; border-radius: 12px;
@@ -319,79 +317,55 @@ select[multiple]::-webkit-scrollbar {
 select[multiple]::-webkit-scrollbar-thumb {
     background: #cbd5e0;
     border-radius: 10px;
-
-/* จำกัดความสูง Textarea ให้กะทัดรัด */
-.compact-input {
-    height: 60px !important; /* ปรับลดลงอีกเล็กน้อยเพื่อให้ข้อมูลสรุปดีดขึ้นมา */
-    font-size: 0.8rem;
-    resize: none;
-    padding: 5px;
+}
+/* บังคับให้ Glass Card ใช้ความสูงที่เหมาะสมกับหน้าจอ */
+.glass-card {
+    padding: 1rem !important;
+    max-height: 95vh; 
+    overflow-y: auto; /* เผื่อกรณีหน้าจอเล็กมากจริงๆ ให้เลื่อนได้เฉพาะจุด */
 }
 
-/* ปรับระยะห่างระหว่าง Label และ Input */
-.small-label {
-    font-size: 0.75rem;
-    font-weight: 600;
-    margin-bottom: 2px;
-    color: #64748b;
+/* ปรับระยะห่างของหัวข้อ */
+.glass-card h6 {
+    margin-bottom: 0.5rem !important;
 }
 
-body, html {
-    height: 100vh;
-    overflow: hidden;
-    margin: 0;
-}
-
-/* 2. ส่วนของตารางที่คุณเขียนมา (ใส่ตรงนี้) */
-#cpSummarySection table {
-    margin-bottom: 0;
-    width: 100%;
-}
-
-#cpSummarySection td {
-    padding: 2px 8px !important; 
-    font-size: 0.75rem;
-    vertical-align: middle;
-    border-bottom: 1px solid #f1f5f9;
-}
-
-/* 3. จุดสำคัญ: ตัวคุมพื้นที่ Scroll */
-.summary-scroll-area {
-    /* ปรับ 350px ตามความเหมาะสมของความสูงส่วนบน */
-    height: calc(100vh - 350px); 
-    overflow-y: auto;
-    padding-right: 5px;
-}
-
-/* 4. ตกแต่ง Scrollbar */
-.summary-scroll-area::-webkit-scrollbar {
-    width: 4px;
-}
-.summary-scroll-area::-webkit-scrollbar-thumb {
-    background: #cbd5e1;
-    border-radius: 10px;
-}}
-/* คุมความสูงของกล่องรับข้อมูลทั้ง 3 กล่อง */
+/* ปรับความสูงของช่อง Input ให้สั้นลง */
 .input-card-wrapper {
-    background: #f8fafc;
-    border-radius: 8px;
-    border: 1px solid #e2e8f0;
-    height: 120px; /* บังคับความสูงคงที่ */
-    display: flex;
-    flex-direction: column;
+    padding: 0.5rem !important;
+    margin-bottom: 0 !important;
 }
 
 .input-card-wrapper textarea {
-    flex: 1;
-    resize: none; /* ห้ามลากขยายเอง */
-    font-size: 0.8rem;
-    padding: 5px;
+    rows: 3 !important; /* ลดจำนวนแถวลง */
+    height: 80px;      /* ล็อคความสูงไว้ที่ 80px */
+    font-size: 0.85rem;
 }
 
-/* ส่วนสรุปด้านล่างให้มีขนาดพอดีกับพื้นที่ที่เหลือ */
-.summary-scroll-area {
-    height: calc(100vh - 320px); /* ลบความสูงส่วนหัวและกล่อง input ออก */
-    overflow-y: auto;
+/* ปรับแต่งตารางให้กระชับ (Compact Table) */
+.cp-table-render {
+    width: 100%;
+    margin-top: 0.5rem;
+    font-size: 0.85rem; /* ลดขนาดตัวอักษรในตารางลงเล็กน้อย */
+}
+
+.cp-table-render th, 
+.cp-table-render td {
+    padding: 4px 8px !important; /* ลดความหนาของแถว */
+    line-height: 1.2;
+}
+
+.cp-label-custom {
+    width: 30%; /* ล็อคความกว้างหัวข้อ */
+}
+
+/* ปรับแต่งปุ่มด้านล่าง */
+.mt-4 {
+    margin-top: 0.75rem !important;
+}
+
+.btn {
+    padding: 0.4rem 1rem;
 }
     </style>
 </head>
@@ -584,37 +558,45 @@ body, html {
 
          <div id="tab-cp" class="tab-content">
     <div class="glass-card">
-       <h6 class="fw-bold text-primary mb-3"><i class="fas fa-bolt me-2"></i>Smart CP Splitter</h6>
+        <h6 class="fw-bold mb-3" style="color:var(--deep-orange)">
+            <i class="fa-solid fa-bolt me-2"></i>Smart CP Splitter
+        </h6>
         
-<div class="row g-2 mb-2"> <div class="col-md-4">
-        <div class="input-card-wrapper border-4g p-2"> <label class="small text-secondary mb-1">
-                <i class="fas fa-broadcast-tower me-2"></i> 1. ข้อมูล 4G (IMSI/Signal)
+        <div class="row g-2 mb-2"> <div class="col-md-4">
+        <div class="input-card-wrapper border-4g p-2"> <label class="small fw-bold text-primary mb-1 d-flex align-items-center" style="font-size: 0.75rem;">
+                <i class="fas fa-broadcast-tower me-2"></i> 1. ข้อมูล 4G
             </label>
-            <textarea id="cpInput4G" class="form-control border-0 bg-transparent" rows="3" placeholder="วางข้อมูล 4G ที่นี่..." oninput="parseCPData()"></textarea>
+            <textarea id="cpInput4G" class="form-control border-0 bg-transparent p-0" 
+                      rows="3" style="font-size: 0.85rem; min-height: 70px;" 
+                      placeholder="วางข้อมูล 4G..." oninput="parseCPData()"></textarea>
         </div>
     </div>
 
     <div class="col-md-4">
         <div class="input-card-wrapper border-5g p-2">
-            <label class="small fw-bold text-danger mb-1 d-flex align-items-center">
-                <i class="fas fa-bolt me-2"></i> 2. ข้อมูล 5G (Signal)
+            <label class="small fw-bold text-danger mb-1 d-flex align-items-center" style="font-size: 0.75rem;">
+                <i class="fas fa-bolt me-2"></i> 2. ข้อมูล 5G
             </label>
-            <textarea id="cpInput5G" class="form-control border-0 bg-transparent" rows="3" placeholder="วางข้อมูล 5G ที่นี่..." oninput="parseCPData()"></textarea>
+            <textarea id="cpInput5G" class="form-control border-0 bg-transparent p-0" 
+                      rows="3" style="font-size: 0.85rem; min-height: 70px;" 
+                      placeholder="วางข้อมูล 5G..." oninput="parseCPData()"></textarea>
         </div>
     </div>
 
     <div class="col-md-4">
         <div class="input-card-wrapper border-addr p-2">
-            <label class="small fw-bold text-success mb-1 d-flex align-items-center">
-                <i class="fas fa-map-marker-alt me-2"></i> 3. ข้อมูลที่อยู่ (Address)
+            <label class="small fw-bold text-success mb-1 d-flex align-items-center" style="font-size: 0.75rem;">
+                <i class="fas fa-map-marker-alt me-2"></i> 3. ข้อมูลที่อยู่
             </label>
-            <textarea id="cpInputAddr" class="form-control border-0 bg-transparent" rows="3" placeholder="วางข้อมูลที่อยู่ที่นี่..." oninput="parseCPData()"></textarea>
+            <textarea id="cpInputAddr" class="form-control border-0 bg-transparent p-0" 
+                      rows="3" style="font-size: 0.85rem; min-height: 70px;" 
+                      placeholder="วางที่อยู่..." oninput="parseCPData()"></textarea>
         </div>
     </div>
 </div>
         
         <div class="table-responsive">
-    <table class="table table-sm summary-table border-top">
+    <table class="cp-table-render" id="cpTable">
         <thead>
             <tr><th colspan="2" class="cp-section-title">ข้อมูลสรุปรายละเอียด (คลิกเพื่อแก้ไขข้อมูลได้)</th></tr>
         </thead>
