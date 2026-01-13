@@ -266,31 +266,55 @@
     font-size: 0.85rem;
 }
 
-/* --- สไตล์พื้นฐานสำหรับ Card Wrapper --- */
+/* --- สไตล์พื้นฐานสำหรับ Card Wrapper (Compact Version) --- */
 .input-card-wrapper {
-    border-radius: 12px;
+    border-radius: 8px; /* ปรับให้มนน้อยลงเพื่อให้ดูเป็นสัดส่วน */
     background: #ffffff;
-    box-shadow: 0 2px 5px rgba(0,0,0,0.05);
+    box-shadow: 0 1px 3px rgba(0,0,0,0.05);
     transition: all 0.3s ease;
-    border: 1.5px solid #e2e8f0; /* ขอบพื้นฐาน */
+    border: 1.5px solid #e2e8f0;
+    margin-bottom: 0px !important; /* ลดช่องว่างด้านล่าง */
 }
 
-/* 1. ข้อมูล 4G - เน้นขอบสีน้ำเงิน */
+/* ปรับความสูงของ Textarea ภายในให้สั้นลง */
+.input-card-wrapper textarea.compact-textarea {
+    font-size: 0.82rem !important;
+    line-height: 1.2;
+    height: 50px !important; /* บีบความสูงเหลือประมาณ 2 บรรทัด */
+    resize: none;
+    margin-top: 2px;
+}
+
+/* ปรับ Label ให้เล็กและชิดขอบมากขึ้น */
+.input-card-wrapper label {
+    font-size: 0.7rem !important;
+    margin-bottom: 2px !important;
+}
+
+/* --- การเน้นขอบตามประเภทข้อมูล (ลดความหนาลงเล็กน้อยเพื่อประหยัดพื้นที่) --- */
+
+/* 1. ข้อมูล 4G */
 .border-4g {
-    border: 2px solid #3b82f6 !important; /* สีน้ำเงินสว่าง */
-    border-top: 5px solid #3b82f6 !important; /* เน้นด้านบนให้หนาขึ้น */
+    border: 1.5px solid #3b82f6 !important;
+    border-top: 4px solid #3b82f6 !important; /* ลดความหนาจาก 5px เป็น 4px */
 }
 
-/* 2. ข้อมูล 5G - เน้นขอบสีแดง */
+/* 2. ข้อมูล 5G */
 .border-5g {
-    border: 2px solid #ef4444 !important; /* สีแดงสว่าง */
-    border-top: 5px solid #ef4444 !important;
+    border: 1.5px solid #ef4444 !important;
+    border-top: 4px solid #ef4444 !important;
 }
 
-/* 3. ข้อมูลที่อยู่ - เน้นขอบสีเขียว */
+/* 3. ข้อมูลที่อยู่ */
 .border-addr {
-    border: 2px solid #10b981 !important; /* สีเขียวสว่าง */
-    border-top: 5px solid #10b981 !important;
+    border: 1.5px solid #10b981 !important;
+    border-top: 4px solid #10b981 !important;
+}
+
+/* เอฟเฟกต์เมื่อ Hover ให้ดูมีมิติแต่ไม่ขยับ Layout */
+.input-card-wrapper:hover {
+    box-shadow: 0 4px 6px rgba(0,0,0,0.1);
+    transform: translateY(-1px);
 }
 
 /* --- ปรับแต่ง Select[multiple] ให้สวยงาม --- */
@@ -562,35 +586,34 @@ select[multiple]::-webkit-scrollbar-thumb {
             <i class="fa-solid fa-bolt me-2"></i>Smart CP Splitter
         </h6>
         
-        <div class="row g-2 mb-2"> <div class="col-md-4">
-        <div class="input-card-wrapper border-4g p-2"> <label class="small fw-bold text-primary mb-1 d-flex align-items-center" style="font-size: 0.75rem;">
-                <i class="fas fa-broadcast-tower me-2"></i> 1. ข้อมูล 4G
+        <div class="row g-2 mb-2">
+    <div class="col-md-4">
+        <div class="input-card-wrapper border-4g p-2 shadow-sm">
+            <label class="small fw-bold text-primary mb-1 d-flex align-items-center" style="font-size: 0.7rem;">
+                <i class="fas fa-broadcast-tower me-1"></i> 1. ข้อมูล 4G
             </label>
-            <textarea id="cpInput4G" class="form-control border-0 bg-transparent p-0" 
-                      rows="3" style="font-size: 0.85rem; min-height: 70px;" 
-                      placeholder="วางข้อมูล 4G..." oninput="parseCPData()"></textarea>
+            <textarea id="cpInput4G" class="form-control border-0 bg-transparent p-0 compact-textarea" 
+                      rows="2" placeholder="วางข้อมูล..." oninput="parseCPData()"></textarea>
         </div>
     </div>
 
     <div class="col-md-4">
-        <div class="input-card-wrapper border-5g p-2">
-            <label class="small fw-bold text-danger mb-1 d-flex align-items-center" style="font-size: 0.75rem;">
-                <i class="fas fa-bolt me-2"></i> 2. ข้อมูล 5G
+        <div class="input-card-wrapper border-5g p-2 shadow-sm">
+            <label class="small fw-bold text-danger mb-1 d-flex align-items-center" style="font-size: 0.7rem;">
+                <i class="fas fa-bolt me-1"></i> 2. ข้อมูล 5G
             </label>
-            <textarea id="cpInput5G" class="form-control border-0 bg-transparent p-0" 
-                      rows="3" style="font-size: 0.85rem; min-height: 70px;" 
-                      placeholder="วางข้อมูล 5G..." oninput="parseCPData()"></textarea>
+            <textarea id="cpInput5G" class="form-control border-0 bg-transparent p-0 compact-textarea" 
+                      rows="2" placeholder="วางข้อมูล..." oninput="parseCPData()"></textarea>
         </div>
     </div>
 
     <div class="col-md-4">
-        <div class="input-card-wrapper border-addr p-2">
-            <label class="small fw-bold text-success mb-1 d-flex align-items-center" style="font-size: 0.75rem;">
-                <i class="fas fa-map-marker-alt me-2"></i> 3. ข้อมูลที่อยู่
+        <div class="input-card-wrapper border-addr p-2 shadow-sm">
+            <label class="small fw-bold text-success mb-1 d-flex align-items-center" style="font-size: 0.7rem;">
+                <i class="fas fa-map-marker-alt me-1"></i> 3. ข้อมูลที่อยู่
             </label>
-            <textarea id="cpInputAddr" class="form-control border-0 bg-transparent p-0" 
-                      rows="3" style="font-size: 0.85rem; min-height: 70px;" 
-                      placeholder="วางที่อยู่..." oninput="parseCPData()"></textarea>
+            <textarea id="cpInputAddr" class="form-control border-0 bg-transparent p-0 compact-textarea" 
+                      rows="2" placeholder="วางข้อมูล..." oninput="parseCPData()"></textarea>
         </div>
     </div>
 </div>
