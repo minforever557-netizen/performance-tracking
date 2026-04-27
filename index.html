@@ -1367,35 +1367,64 @@ function showTab(t) {
     const historyBody = document.getElementById('historyBody');
     if (!historyBody || typeof allData === 'undefined') return;
 
-    // 1. ดึงวันที่วันนี้ในรูปแบบ YYYY-MM-DD (เวลาไทย)
+    // 1. ดึงวันที่วันนี้ (YYYY-MM-DD)
     const now = new Date();
     const todayStr = now.toLocaleDateString('en-CA'); 
 
-    // 2. กรองข้อมูลโดยเน้นความชัวร์เรื่อง Format วันที่
-    const history = allData.filter(d => {
-        if (!d[0]) return false;
-        // พยายามตัดเอาเฉพาะส่วนวันที่ YYYY-MM-DD จากคอลัมน์แรก
-        const rowDateStr = new Date(d[0]).toLocaleDateString('en-CA');
-        return rowDateStr === todayStr && d[1] === currentUser;
-    }).reverse(); 
+    // 2. กรองข้อมูลและเก็บ Index จริงไว้ (เพื่อใช้ลบ/แก้ไขให้ถูกแถว)
+    const history = allData
+        .map((row, index) => ({ data: row, originalIndex: index }))
+        .filter(item => {
+            if (!item.data[0]) return false;
+            const rowDateStr = new Date(item.data[0]).toLocaleDateString('en-CA');
+            return rowDateStr === todayStr && item.data[1] === currentUser;
+        })
+        .reverse(); 
 
     if (history.length === 0) {
-        historyBody.innerHTML = '<tr><td colspan="3" class="text-center text-muted small">ยังไม่มีรายการบันทึกของวันนี้</td></tr>';
+        // ปรับ colspan เป็น 4 เพื่อให้ครอบคลุมคอลัมน์ปุ่มกดที่เพิ่มมา
+        historyBody.innerHTML = '<tr><td colspan="4" class="text-center text-muted small py-3">ยังไม่มีรายการบันทึกของวันนี้</td></tr>';
         return;
     }
 
-    // 3. แสดงผลในตาราง
-    historyBody.innerHTML = history.map(d => {
-        const dateObj = new Date(d[0]);
+    // 3. แสดงผลในตารางพร้อมปุ่ม Action
+    historyBody.innerHTML = history.map(item => {
+        const dateObj = new Date(item.data[0]);
         const time = isNaN(dateObj) ? "--:--" : dateObj.toLocaleTimeString('th-TH', { hour: '2-digit', minute: '2-digit' });
+        
         return `
-            <tr>
-                <td class="text-secondary small">${time} น.</td>
-                <td class="fw-bold">${d[3] || '-'}</td>
-                <td><span class="badge bg-light text-dark border">${d[2]}</span></td>
+            <tr class="align-middle">
+                <td class="text-secondary small" style="width: 20%;">${time} น.</td>
+                <td class="fw-bold">${item.data[3] || '-'}</td>
+                <td><span class="badge bg-light text-dark border">${item.data[2]}</span></td>
+                <td class="text-end" style="width: 80px;">
+                    <div class="btn-group">
+                        <button class="btn btn-sm text-primary p-1 me-2" onclick="editRow(${item.originalIndex})" title="แก้ไข">
+                            <i class="fas fa-edit"></i>
+                        </button>
+                        <button class="btn btn-sm text-danger p-1" onclick="deleteRow(${item.originalIndex})" title="ลบ">
+                            <i class="fas fa-trash-alt"></i>
+                        </button>
+                    </div>
+                </td>
             </tr>
         `;
     }).join('');
+}
+
+// ฟังก์ชันรองรับการคลิก (ใส่ต่อท้ายไว้ได้เลย)
+function editRow(index) {
+    const targetData = allData[index];
+    console.log("แก้ไขแถวที่:", index, targetData);
+    // เพิ่ม Logic การแก้ไขที่นี่ เช่นเปิด Modal หรือดึงค่ากลับไปที่ Form
+}
+
+function deleteRow(index) {
+    const targetData = allData[index];
+    if (confirm(`คุณต้องการลบรายการของ "${targetData[3]}" ใช่หรือไม่?`)) {
+        console.log("ลบแถวที่:", index);
+        // เพิ่ม Logic การลบข้อมูลที่นี่ เช่น google.script.run...
+    }
 }
 processDashboard(); // อัปเดตยอดรวมและ Dashboard
 updateHistory();    // อัปเดตรายการประวัติข้างล่างปุ่ม
